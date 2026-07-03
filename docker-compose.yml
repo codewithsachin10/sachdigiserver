@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  sachdeploy:
+    build: .
+    container_name: sachdeploy
+    ports:
+      - "7000:7000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./storage:/app/storage
+    environment:
+      - PORT=7000
+      - STORAGE_PATH=/app/storage
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=sachdeploy
+      - MAX_ACTIVE_APPS=3
+    restart: unless-stopped

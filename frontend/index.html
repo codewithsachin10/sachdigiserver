@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SachDeploy v1 | Stable Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            vercel: {
+              black: '#000000',
+              dark: '#111111',
+              card: '#1a1a1a',
+              border: '#2a2a2a',
+              text: '#eaeaea',
+              muted: '#888888'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0a0a; color: #eaeaea; font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    .pulse-green { box-shadow: 0 0 8px #22c55e; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-white selection:text-black">
+
+  <!-- LOGIN VIEW -->
+  <div id="login-view" class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-[#111] border border-gray-800 rounded-2xl p-8 shadow-2xl">
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center font-bold text-2xl shadow-lg mb-3">▲</div>
+        <h1 class="text-xl font-bold text-white tracking-tight">SachDeploy Stable</h1>
+        <p class="text-xs text-gray-400 mt-1">Self-Hosted Docker Platform (2GB RAM Edition)</p>
+      </div>
+      <div id="login-error" class="hidden mb-6 p-3 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-xs"></div>
+      <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+          <input type="text" id="username" class="w-full px-3.5 py-2 rounded-lg bg-black border border-gray-800 text-white text-sm focus:outline-none focus:border-white transition font-mono" placeholder="admin" required />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+          <input type="password" id="password" class="w-full px-3.5 py-2 rounded-lg bg-black border border-gray-800 text-white text-sm focus:outline-none focus:border-white transition" placeholder="••••••••" required />
+        </div>
+        <button type="submit" id="login-btn" class="w-full py-2.5 mt-2 rounded-lg bg-white text-black font-semibold text-sm hover:bg-gray-200 transition shadow-lg">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboard-view" class="hidden flex-1 flex flex-col">
+    <!-- Navbar -->
+    <header class="border-b border-gray-800 bg-[#111]/80 backdrop-blur sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-lg">▲</div>
+        <div>
+          <div class="font-bold tracking-tight text-white flex items-center gap-2 text-base">
+            SachDeploy <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-gray-800 text-gray-300 rounded border border-gray-700">v1.0 Stable</span>
+          </div>
+          <div class="text-xs text-gray-500 font-mono flex items-center gap-2">
+            <span>🛡️ System Guard Active</span>
+            <span>•</span>
+            <span id="ws-status" class="text-green-400">● Live WebSocket</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span id="user-display" class="text-sm text-gray-300 font-medium hidden sm:inline"></span>
+        <button onclick="handleLogout()" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- System Guard Alert Banner -->
+    <div id="guard-alert" class="hidden bg-amber-950/80 border-b border-amber-800 px-6 py-2.5 text-xs text-amber-200 font-mono flex items-center justify-between">
+      <span id="guard-alert-text"></span>
+      <button onclick="document.getElementById('guard-alert').classList.add('hidden')" class="font-bold text-sm hover:text-white ml-4">×</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-8">
+      <!-- Top Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-[#111] border border-gray-800 rounded-xl p-5">
+          <div class="text-xs text-gray-400 font-medium mb-1">Server RAM (512M Limit)</div>
+          <div id="stat-ram" class="text-2xl font-bold text-white font-mono">--%</div>
+          <div id="stat-ram-mb" class="text-[11px] text-gray-500 mt-2">Monitoring...</div>
+        </div>
+        <div class="bg-[#111] border border-gray-800 rounded-xl p-5">
+          <div class="text-xs text-gray-400 font-medium mb-1">Active Containers (Max 3)</div>
+          <div id="stat-running" class="text-2xl font-bold text-green-400 font-mono">0 / 3</div>
+          <div class="text-[11px] text-gray-500 mt-2">Auto-Recovery Protected</div>
+        </div>
+        <div class="bg-[#111] border border-gray-800 rounded-xl p-5">
+          <div class="text-xs text-gray-400 font-medium mb-1">Host CPU / Disk Usage</div>
+          <div id="stat-cpu-disk" class="text-2xl font-bold text-white font-mono">--% / --%</div>
+          <div class="text-[11px] text-gray-500 mt-2">Auto-Clean Disk Enabled</div>
+        </div>
+        <div class="bg-[#111] border border-gray-800 rounded-xl p-5">
+          <div class="text-xs text-gray-400 font-medium mb-1">Tailscale Host IP</div>
+          <div id="stat-host" class="text-lg font-bold text-blue-400 font-mono truncate">localhost</div>
+          <div class="text-[11px] text-gray-500 mt-2">Port Range: 8001–8100</div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="flex items-center justify-between bg-[#111]/40 p-4 rounded-xl border border-gray-800">
+        <h2 class="text-base font-semibold text-white">Deployed Applications</h2>
+        <button onclick="openDeployModal()" class="px-5 py-2 bg-white text-black font-semibold text-sm rounded-lg hover:bg-gray-200 transition shadow-lg">+ Deploy New Project</button>
+      </div>
+
+      <!-- Projects Grid -->
+      <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Cards loaded dynamically via JavaScript -->
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-900 py-6 text-center text-xs text-gray-600 font-mono">
+      SachDeploy Stable • System Guard & Auto Recovery Active • Vanilla HTML & JS
+    </footer>
+  </div>
+
+  <!-- DEPLOY MODAL -->
+  <div id="deploy-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-[#111] border border-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-4 border-b border-gray-800 mb-4">
+        <h3 class="font-bold text-base text-white">Deploy Application</h3>
+        <button onclick="closeDeployModal()" class="text-gray-500 hover:text-white font-bold text-lg">×</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-black p-1 rounded-lg border border-gray-800 mb-6">
+        <button type="button" id="tab-btn-zip" onclick="switchTab('zip')" class="py-2 rounded-md font-medium text-xs bg-white text-black font-semibold shadow transition">📁 ZIP Upload</button>
+        <button type="button" id="tab-btn-git" onclick="switchTab('git')" class="py-2 rounded-md font-medium text-xs text-gray-400 hover:text-white transition">🐙 GitHub Repo</button>
+      </div>
+
+      <div id="deploy-error" class="hidden mb-4 p-3 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-xs"></div>
+
+      <!-- ZIP Form -->
+      <form id="form-zip" onsubmit="handleDeployZip(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Project Name</label>
+          <input type="text" id="zip-name" pattern="[a-zA-Z0-9-_]+" placeholder="e.g. my-python-app" required class="w-full px-3.5 py-2 bg-black border border-gray-800 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-gray-600 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Upload Project ZIP</label>
+          <input type="file" id="zip-file" accept=".zip" required class="w-full px-3.5 py-2 bg-black border border-gray-800 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-gray-600 transition" />
+        </div>
+        <div class="bg-gray-950/80 p-3 rounded-lg border border-gray-800/80 text-[11px] text-gray-400 space-y-1">
+          <div class="font-semibold text-gray-300">💡 Auto-Detection Rules:</div>
+          <div>• requirements.txt → Python app (uvicorn/fastapi/flask)</div>
+          <div>• package.json → Node.js app (npm start)</div>
+          <div>• index.html → Static HTML site (nginx)</div>
+        </div>
+        <div class="pt-4 flex justify-end gap-3 border-t border-gray-800">
+          <button type="button" onclick="closeDeployModal()" class="px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-xs font-medium text-gray-300 transition">Cancel</button>
+          <button type="submit" id="zip-submit-btn" class="px-5 py-2 rounded-lg bg-white text-black font-semibold text-xs hover:bg-gray-200 transition shadow-lg">🚀 Deploy ZIP</button>
+        </div>
+      </form>
+
+      <!-- Git Form -->
+      <form id="form-git" onsubmit="handleDeployGit(event)" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Project Name</label>
+          <input type="text" id="git-name" pattern="[a-zA-Z0-9-_]+" placeholder="e.g. my-node-service" required class="w-full px-3.5 py-2 bg-black border border-gray-800 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-gray-600 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">GitHub Repo URL</label>
+          <input type="url" id="git-url" placeholder="https://github.com/username/repository.git" required class="w-full px-3.5 py-2 bg-black border border-gray-800 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-gray-600 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-300 mb-1">Branch Name</label>
+          <input type="text" id="git-branch" value="main" required class="w-full px-3.5 py-2 bg-black border border-gray-800 rounded-lg text-sm text-white font-mono focus:outline-none focus:border-gray-600 transition" />
+        </div>
+        <div class="pt-4 flex justify-end gap-3 border-t border-gray-800">
+          <button type="button" onclick="closeDeployModal()" class="px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-xs font-medium text-gray-300 transition">Cancel</button>
+          <button type="submit" id="git-submit-btn" class="px-5 py-2 rounded-lg bg-white text-black font-semibold text-xs hover:bg-gray-200 transition shadow-lg">🚀 Deploy Repo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- LOGS MODAL -->
+  <div id="logs-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-[#111] border border-gray-800 rounded-2xl w-full max-w-3xl p-6 shadow-2xl flex flex-col h-[600px]">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
+        <h3 id="logs-title" class="font-bold text-base text-white">Container Logs (Last 100 lines)</h3>
+        <div class="flex items-center space-x-3">
+          <button onclick="refreshLogs()" class="text-xs text-blue-400 hover:text-blue-300 font-mono">↻ Refresh</button>
+          <button onclick="closeLogsModal()" class="text-gray-500 hover:text-white font-bold text-lg">×</button>
+        </div>
+      </div>
+      <div id="logs-content" class="flex-1 bg-black p-4 rounded-xl border border-gray-800 font-mono text-xs text-gray-300 overflow-y-auto whitespace-pre-wrap leading-relaxed">Loading logs...</div>
+    </div>
+  </div>
+
+  <!-- PURE JAVASCRIPT LOGIC -->
+  <script>
+    let token = localStorage.getItem('sach_token') || '';
+    let currentLogsProjectId = null;
+    let ws = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('stat-host').textContent = window.location.hostname;
+      if (!token) {
+        showView('login');
+      } else {
+        showView('dashboard');
+        loadProjects();
+        connectWebSocket();
+        setInterval(loadProjects, 10000); // Backstop polling
+      }
+    });
+
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.host}/ws/events`);
+      
+      ws.onopen = () => {
+        document.getElementById('ws-status').textContent = '● Live WebSocket';
+        document.getElementById('ws-status').className = 'text-green-400';
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'status_update') {
+            loadProjects();
+          } else if (data.type === 'metrics') {
+            document.getElementById('stat-ram').textContent = `${data.ram}%`;
+            document.getElementById('stat-ram-mb').textContent = `${data.ram_used_mb}M / ${data.ram_total_mb}M Used`;
+            document.getElementById('stat-cpu-disk').textContent = `${data.cpu}% / ${data.disk}%`;
+          } else if (data.type === 'guard_warning') {
+            const alertBox = document.getElementById('guard-alert');
+            document.getElementById('guard-alert-text').textContent = data.message;
+            alertBox.classList.remove('hidden');
+          }
+        } catch (e) { console.error('WS parse error:', e); }
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-status').textContent = '○ WS Reconnecting...';
+        document.getElementById('ws-status').className = 'text-yellow-500';
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    function showView(view) {
+      if (view === 'login') {
+        document.getElementById('login-view').classList.remove('hidden');
+        document.getElementById('dashboard-view').classList.add('hidden');
+      } else {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('dashboard-view').classList.remove('hidden');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errBox = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+      
+      errBox.classList.add('hidden');
+      btn.textContent = 'Authenticating...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = data.token;
+          localStorage.setItem('sach_token', token);
+          document.getElementById('user-display').textContent = data.username;
+          showView('dashboard');
+          loadProjects();
+          connectWebSocket();
+        } else {
+          errBox.textContent = data.detail || 'Login failed';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errBox.textContent = 'Cannot connect to server.';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+      }
+    }
+
+    async function handleLogout() {
+      await fetch('/api/logout', { method: 'POST' });
+      localStorage.removeItem('sach_token');
+      token = '';
+      if (ws) ws.close();
+      showView('login');
+    }
+
+    async function loadProjects() {
+      if (!token) return;
+      try {
+        const res = await fetch('/api/projects', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+          handleLogout();
+          return;
+        }
+        const projects = await res.json();
+        renderProjects(projects);
+      } catch (err) {
+        console.error('Error loading projects:', err);
+      }
+    }
+
+    function renderProjects(projects) {
+      const runningCount = projects.filter(p => p.status === 'running').length;
+      document.getElementById('stat-running').textContent = `${runningCount} / 3`;
+
+      const grid = document.getElementById('projects-grid');
+      if (projects.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full border border-dashed border-gray-800 rounded-2xl p-12 text-center bg-[#111]/20">
+            <div class="w-12 h-12 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center mx-auto mb-4 text-xl">📦</div>
+            <h3 class="text-base font-semibold text-white mb-1">No applications deployed</h3>
+            <p class="text-xs text-gray-500 max-w-sm mx-auto mb-6">Upload a ZIP archive or link a GitHub repo. SachDeploy will detect Python, Node.js, or Static sites automatically.</p>
+            <button onclick="openDeployModal()" class="px-4 py-2 bg-white text-black font-medium text-xs rounded-lg hover:bg-gray-200 transition">Deploy First Project</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = projects.map(p => {
+        const isRunning = p.status === 'running';
+        const isBuilding = p.status === 'building';
+        const isError = p.status.startsWith('error') || p.status.includes('guard');
+
+        let badge = `<span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-900 border border-gray-700 text-gray-400 text-[11px] font-mono">⚪ Stopped</span>`;
+        if (isRunning) badge = `<span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-950 border border-green-800 text-green-400 text-[11px] font-mono font-medium"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse pulse-green"></span>Running</span>`;
+        else if (isBuilding) badge = `<span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-950 border border-yellow-800 text-yellow-400 text-[11px] font-mono font-medium">⏳ Building...</span>`;
+        else if (isError) badge = `<span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950 border border-red-800 text-red-400 text-[11px] font-mono font-medium" title="${p.status}">🔴 ${p.status.includes('guard') ? 'Stopped (Guard)' : 'Error'}</span>`;
+
+        const url = `http://${window.location.hostname}:${p.port}`;
+
+        return `
+          <div class="bg-[#111] border border-gray-800 rounded-xl hover:border-gray-700 transition flex flex-col justify-between overflow-hidden shadow-lg">
+            <div class="p-5">
+              <div class="flex items-start justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-lg bg-black border border-gray-800 flex items-center justify-center text-base shrink-0">${p.source === 'zip' ? '📁' : '🐙'}</div>
+                  <div class="min-w-0">
+                    <h3 class="font-semibold text-white text-base truncate tracking-tight">${p.name}</h3>
+                    <div class="text-[11px] text-gray-500 font-mono truncate uppercase">${p.type} Application</div>
+                  </div>
+                </div>
+                ${badge}
+              </div>
+              <div class="mt-4 pt-3 border-t border-gray-900 flex items-center justify-between text-xs font-mono">
+                <span class="text-gray-500">Host Port: <code class="text-gray-300 font-bold">${p.port}</code></span>
+                ${isRunning ? `<a href="${url}" target="_blank" class="text-blue-400 hover:text-blue-300 font-sans font-medium">Open App ↗</a>` : ''}
+              </div>
+            </div>
+            <div class="bg-black/60 px-4 py-3 border-t border-gray-800/80 flex items-center justify-between gap-1">
+              <div class="flex items-center space-x-1">
+                ${isRunning ? `
+                  <button onclick="handleAction('${p.id}', 'restart')" title="Restart" class="p-1.5 rounded bg-gray-900 text-gray-300 hover:text-white hover:bg-gray-800 transition text-xs">🔄</button>
+                  <button onclick="handleAction('${p.id}', 'stop')" title="Stop" class="p-1.5 rounded bg-gray-900 text-red-400 hover:bg-red-950/40 transition text-xs">⏹️</button>
+                ` : `
+                  <button onclick="handleAction('${p.id}', 'start')" ${isBuilding ? 'disabled' : ''} class="px-2.5 py-1 rounded bg-green-950/80 border border-green-800 text-green-400 hover:bg-green-900/60 transition text-xs font-medium disabled:opacity-40">▶ Start</button>
+                `}
+                <button onclick="handleDelete('${p.id}', '${p.name}')" title="Delete" class="p-1.5 rounded bg-gray-900 text-gray-500 hover:text-red-400 transition text-xs ml-1">🗑️</button>
+              </div>
+              <button onclick="openLogsModal('${p.id}', '${p.name}')" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-xs text-gray-300 hover:text-white transition font-medium">📜 View Logs</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleAction(id, action) {
+      try {
+        const res = await fetch(`/api/projects/${id}/${action}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) loadProjects();
+        else {
+          const d = await res.json();
+          alert(`Error: ${d.detail || 'Action failed'}`);
+        }
+      } catch (err) { alert(`Error: ${err.message}`); }
+    }
+
+    async function handleDelete(id, name) {
+      if (!confirm(`Permanently delete project "${name}" and its container?`)) return;
+      try {
+        const res = await fetch(`/api/projects/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) loadProjects();
+        else alert('Failed to delete project');
+      } catch (err) { alert(`Error: ${err.message}`); }
+    }
+
+    // Modal Controls
+    function openDeployModal() {
+      document.getElementById('deploy-error').classList.add('hidden');
+      document.getElementById('deploy-modal').classList.remove('hidden');
+    }
+    function closeDeployModal() {
+      document.getElementById('deploy-modal').classList.add('hidden');
+    }
+    function switchTab(tab) {
+      if (tab === 'zip') {
+        document.getElementById('form-zip').classList.remove('hidden');
+        document.getElementById('form-git').classList.add('hidden');
+        document.getElementById('tab-btn-zip').className = "py-2 rounded-md font-medium text-xs bg-white text-black font-semibold shadow transition";
+        document.getElementById('tab-btn-git').className = "py-2 rounded-md font-medium text-xs text-gray-400 hover:text-white transition";
+      } else {
+        document.getElementById('form-zip').classList.add('hidden');
+        document.getElementById('form-git').classList.remove('hidden');
+        document.getElementById('tab-btn-git').className = "py-2 rounded-md font-medium text-xs bg-white text-black font-semibold shadow transition";
+        document.getElementById('tab-btn-zip').className = "py-2 rounded-md font-medium text-xs text-gray-400 hover:text-white transition";
+      }
+    }
+
+    async function handleDeployZip(e) {
+      e.preventDefault();
+      const name = document.getElementById('zip-name').value;
+      const file = document.getElementById('zip-file').files[0];
+      const errBox = document.getElementById('deploy-error');
+      const btn = document.getElementById('zip-submit-btn');
+
+      errBox.classList.add('hidden');
+      btn.textContent = 'Uploading...';
+      btn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/deploy/zip', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const d = await res.json();
+        if (res.ok) {
+          closeDeployModal();
+          loadProjects();
+          document.getElementById('form-zip').reset();
+        } else {
+          errBox.textContent = d.detail || 'Deploy failed';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.textContent = '🚀 Deploy ZIP';
+        btn.disabled = false;
+      }
+    }
+
+    async function handleDeployGit(e) {
+      e.preventDefault();
+      const name = document.getElementById('git-name').value;
+      const git_url = document.getElementById('git-url').value;
+      const branch = document.getElementById('git-branch').value;
+      const errBox = document.getElementById('deploy-error');
+      const btn = document.getElementById('git-submit-btn');
+
+      errBox.classList.add('hidden');
+      btn.textContent = 'Initiating...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/deploy/git', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, git_url, branch })
+        });
+        const d = await res.json();
+        if (res.ok) {
+          closeDeployModal();
+          loadProjects();
+          document.getElementById('form-git').reset();
+        } else {
+          errBox.textContent = d.detail || 'Deploy failed';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.textContent = '🚀 Deploy Repo';
+        btn.disabled = false;
+      }
+    }
+
+    // Logs Modal Controls
+    function openLogsModal(id, name) {
+      currentLogsProjectId = id;
+      document.getElementById('logs-title').textContent = `Logs: ${name} (Last 100 lines)`;
+      document.getElementById('logs-content').textContent = 'Loading logs...';
+      document.getElementById('logs-modal').classList.remove('hidden');
+      refreshLogs();
+    }
+    function closeLogsModal() {
+      currentLogsProjectId = null;
+      document.getElementById('logs-modal').classList.add('hidden');
+    }
+    async function refreshLogs() {
+      if (!currentLogsProjectId) return;
+      try {
+        const res = await fetch(`/api/projects/${currentLogsProjectId}/logs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const d = await res.json();
+        const box = document.getElementById('logs-content');
+        box.textContent = d.logs || 'No logs found.';
+        box.scrollTop = box.scrollHeight;
+      } catch (err) {
+        document.getElementById('logs-content').textContent = `Error loading logs: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

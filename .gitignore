@@ -1,0 +1,16 @@
+# Storage & Databases
+storage/uploads/*
+storage/projects/*
+storage/*.sqlite
+storage/*.db
+!storage/uploads/.gitkeep
+!storage/projects/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env
+venv/
+.venv/
