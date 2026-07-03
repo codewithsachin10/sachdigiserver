@@ -28,6 +28,9 @@ import backend.portainer_service as portainer
 import backend.file_service as file_mgr
 import backend.backup_service as backup_svc
 import backend.server_control as sys_ctrl
+import backend.terminal_service as term_svc
+import backend.marketplace as marketplace_cat
+import backend.marketplace_service as marketplace_svc
 
 app = FastAPI(title="SachDeploy v2.0 Enterprise", version="2.0.0")
 
@@ -110,6 +113,21 @@ class ServerActionRequest(BaseModel):
 
 class ProjectEnvRequest(BaseModel):
     env: dict
+
+class TerminalCreateRequest(BaseModel):
+    name: Optional[str] = "Host Terminal"
+    cwd: Optional[str] = "/app"
+
+class TerminalResizeRequest(BaseModel):
+    cols: int
+    rows: int
+
+class MarketplaceDeployRequest(BaseModel):
+    template_id: str
+    name: Optional[str] = None
+    port: Optional[int] = None
+    env: Optional[dict] = None
+
 
 @app.on_event("startup")
 async def startup():
@@ -583,6 +601,77 @@ async def server_control_action(req: ServerActionRequest, user: dict = Depends(g
         return sys_ctrl.shutdown_server()
     else:
         raise HTTPException(status_code=400, detail="Unknown server action")
+
+# --- Terminal Service Routes ---
+@app.get("/api/terminal/sessions")
+async def get_terminal_sessions(user: dict = Depends(get_current_user)):
+    return term_svc.list_terminal_sessions()
+
+@app.post("/api/terminal/sessions")
+async def create_new_terminal_session(req: TerminalCreateRequest, user: dict = Depends(get_current_user)):
+    return term_svc.create_terminal_session(name=req.name, cwd=req.cwd)
+
+@app.delete("/api/terminal/sessions/{session_id}")
+async def kill_terminal_tab(session_id: str, user: dict = Depends(get_current_user)):
+    if not term_svc.kill_terminal_session(session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"message": "Session terminated"}
+
+@app.post("/api/terminal/sessions/{session_id}/resize")
+async def resize_terminal_tab(session_id: str, req: TerminalResizeRequest, user: dict = Depends(get_current_user)):
+    if not term_svc.resize_terminal_session(session_id, req.cols, req.rows):
+        raise HTTPException(status_code=400, detail="Resize failed")
+    return {"status": "ok"}
+
+@app.websocket("/ws/terminal")
+async def terminal_websocket(websocket: WebSocket, session_id: Optional[str] = None):
+    await websocket.accept()
+    if not session_id or session_id not in term_svc.ACTIVE_SESSIONS:
+        sessions = term_svc.list_terminal_sessions()
+        if sessions:
+            session_id = sessions[0]["id"]
+        else:
+            new_sess = term_svc.create_terminal_session("Host Terminal", "/app")
+            session_id = new_sess["id"]
+            
+    master_fd = term_svc.ACTIVE_SESSIONS[session_id]["master_fd"]
+    reader_task = asyncio.create_task(term_svc.read_pty_loop(websocket, master_fd))
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data.startswith("{") and "resize" in data:
+                try:
+                    import json
+                    cmd = json.loads(data)
+                    if cmd.get("type") == "resize":
+                        term_svc.resize_terminal_session(session_id, int(cmd.get("cols", 80)), int(cmd.get("rows", 24)))
+                        continue
+                except Exception:
+                    pass
+            os.write(master_fd, data.encode("utf-8"))
+    except WebSocketDisconnect:
+        reader_task.cancel()
+    except Exception:
+        reader_task.cancel()
+
+# --- App Marketplace Routes ---
+@app.get("/api/marketplace/catalog")
+async def get_marketplace_catalog(user: dict = Depends(get_current_user)):
+    return marketplace_cat.get_catalog()
+
+@app.post("/api/marketplace/deploy")
+async def deploy_marketplace_app(req: MarketplaceDeployRequest, user: dict = Depends(get_current_user)):
+    try:
+        res = await marketplace_svc.deploy_template(
+            template_id=req.template_id,
+            custom_name=req.name,
+            custom_port=req.port,
+            custom_env=req.env,
+            ws_notify_func=ws_manager.broadcast
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # --- Static Frontend Serving ---
 frontend_path = "/app/frontend" if os.path.exists("/app/frontend") else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")

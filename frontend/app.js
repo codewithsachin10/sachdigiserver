@@ -215,11 +215,14 @@ function switchTab(tabName) {
 function refreshCurrentTab() {
     if (activeTab === 'projects') loadProjects();
     else if (activeTab === 'containers') loadContainers();
+    else if (activeTab === 'marketplace') loadMarketplace();
+    else if (activeTab === 'terminal') initTerminalView();
     else if (activeTab === 'files') loadFiles('');
     else if (activeTab === 'backups') loadBackups();
     else if (activeTab === 'server') fetchTelemetryNow();
     else if (activeTab === 'settings') loadSettings();
 }
+
 
 // --- Projects & Deployments ---
 async function loadProjects() {
@@ -781,3 +784,288 @@ function formatBytes(bytes) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
+
+// --- One-Click App Marketplace ---
+let marketplaceCatalog = [];
+let activeMarketCategory = 'All';
+
+async function loadMarketplace() {
+    const grid = document.getElementById('marketplace-grid');
+    grid.innerHTML = '<div class="text-gray-500 text-sm col-span-full">Loading catalog...</div>';
+    try {
+        const res = await apiFetch('/api/marketplace/catalog');
+        marketplaceCatalog = res;
+        renderMarketplace();
+    } catch (err) {
+        grid.innerHTML = `<div class="text-red-400 text-sm col-span-full">Failed to load marketplace: ${err.message}</div>`;
+    }
+}
+
+function filterMarketplace(category) {
+    activeMarketCategory = category;
+    document.querySelectorAll('.market-pill').forEach(btn => {
+        if (btn.innerText.trim() === category || (category === 'Databases & Storage' && btn.innerText.includes('Databases')) || (category === 'Local AI & LLMs' && btn.innerText.includes('Local AI')) || (category === 'Automation & Workflows' && btn.innerText.includes('Automation')) || (category === 'Observability & Monitoring' && btn.innerText.includes('Monitoring')) || (category === 'DevOps & Management' && btn.innerText.includes('DevOps'))) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    renderMarketplace();
+}
+
+function renderMarketplace() {
+    const grid = document.getElementById('marketplace-grid');
+    grid.innerHTML = '';
+    const filtered = activeMarketCategory === 'All' 
+        ? marketplaceCatalog 
+        : marketplaceCatalog.filter(t => t.category === activeMarketCategory);
+        
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="text-gray-500 text-sm col-span-full">No apps found in this category.</div>';
+        return;
+    }
+    
+    filtered.forEach(tmpl => {
+        const card = document.createElement('div');
+        card.className = 'glass-card p-5 rounded-2xl border border-gray-800 hover:border-indigo-500/50 transition-all flex flex-col justify-between space-y-4 shadow-lg';
+        
+        const ramBadgeColor = tmpl.ram_tier.includes('Low') ? 'text-green-400 bg-green-950/40 border-green-800/50' : (tmpl.ram_tier.includes('Medium') ? 'text-yellow-400 bg-yellow-950/40 border-yellow-800/50' : 'text-red-400 bg-red-950/40 border-red-800/50');
+        
+        card.innerHTML = `
+            <div class="space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl p-2 bg-gray-900/80 rounded-xl border border-gray-800 inline-block">${tmpl.icon}</span>
+                        <div>
+                            <h3 class="text-base font-bold text-white leading-tight">${tmpl.name}</h3>
+                            <span class="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">${tmpl.category}</span>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${ramBadgeColor}">${tmpl.ram_tier}</span>
+                </div>
+                <p class="text-xs text-gray-400 leading-relaxed">${tmpl.description}</p>
+            </div>
+            <div class="pt-3 border-t border-gray-800/80 flex items-center justify-between">
+                <span class="text-xs font-mono text-gray-500">Port: <strong class="text-gray-300">${tmpl.default_port}</strong></span>
+                <button onclick="openMarketplaceModal('${tmpl.id}')" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 flex items-center gap-1 transition-all">⚡ Deploy</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function openMarketplaceModal(templateId) {
+    const tmpl = marketplaceCatalog.find(t => t.id === templateId);
+    if (!tmpl) return;
+    
+    document.getElementById('market-template-id').value = tmpl.id;
+    document.getElementById('market-modal-title').innerHTML = `${tmpl.icon} Launch ${tmpl.name}`;
+    document.getElementById('market-app-name').value = tmpl.name.toLowerCase().replace(/\\s+/g, '-');
+    document.getElementById('market-app-port').value = tmpl.default_port;
+    
+    const envContainer = document.getElementById('market-env-inputs');
+    envContainer.innerHTML = '';
+    
+    const envKeys = Object.keys(tmpl.env || {});
+    if (envKeys.length === 0) {
+        envContainer.innerHTML = '<div class="text-xs text-gray-500 italic">No environment configuration required.</div>';
+    } else {
+        envKeys.forEach(key => {
+            const val = tmpl.env[key];
+            const div = document.createElement('div');
+            div.className = 'space-y-1';
+            div.innerHTML = `
+                <label class="block text-[11px] font-mono font-semibold text-gray-300">${key}</label>
+                <input type="text" data-env-key="${key}" value="${val}" required class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-white font-mono text-xs focus:border-indigo-500 outline-none" />
+            `;
+            envContainer.appendChild(div);
+        });
+    }
+    
+    document.getElementById('marketplace-modal').classList.add('active');
+}
+
+function closeMarketplaceModal() {
+    document.getElementById('marketplace-modal').classList.remove('active');
+}
+
+async function submitMarketplaceDeploy(e) {
+    e.preventDefault();
+    const template_id = document.getElementById('market-template-id').value;
+    const name = document.getElementById('market-app-name').value.trim();
+    const port = parseInt(document.getElementById('market-app-port').value, 10);
+    
+    const env = {};
+    document.querySelectorAll('#market-env-inputs input[data-env-key]').forEach(input => {
+        env[input.getAttribute('data-env-key')] = input.value;
+    });
+    
+    closeMarketplaceModal();
+    showToast(`⚡ Deploying ${name}... Check live notifications!`, 'info');
+    switchTab('projects');
+    
+    try {
+        await apiFetch('/api/marketplace/deploy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template_id, name, port, env })
+        });
+        showToast(`🎉 ${name} deployed successfully!`, 'success');
+        loadProjects();
+    } catch (err) {
+        showToast(`❌ Marketplace deploy failed: ${err.message}`, 'error');
+    }
+}
+
+// --- Integrated Zero-SSH Terminal ---
+let xtermInstance = null;
+let fitAddon = null;
+let termWs = null;
+let activeTerminalSessionId = null;
+
+async function initTerminalView() {
+    try {
+        const sessions = await apiFetch('/api/terminal/sessions');
+        if (!sessions || sessions.length === 0) {
+            await createNewTerminalTab('Host Terminal', '/app');
+        } else {
+            renderTerminalTabs(sessions);
+            if (!activeTerminalSessionId || !sessions.find(s => s.id === activeTerminalSessionId)) {
+                switchTerminalTab(sessions[0].id);
+            } else {
+                switchTerminalTab(activeTerminalSessionId);
+            }
+        }
+    } catch (err) {
+        showToast(`Terminal error: ${err.message}`, 'error');
+    }
+}
+
+function renderTerminalTabs(sessions) {
+    const bar = document.getElementById('terminal-tabs-bar');
+    bar.innerHTML = '';
+    sessions.forEach(sess => {
+        const btn = document.createElement('button');
+        btn.className = `term-tab ${sess.id === activeTerminalSessionId ? 'active' : ''}`;
+        btn.innerHTML = `<span>🐚</span> <span>${sess.name}</span>`;
+        btn.onclick = () => switchTerminalTab(sess.id);
+        bar.appendChild(btn);
+    });
+}
+
+function switchTerminalTab(sessionId) {
+    activeTerminalSessionId = sessionId;
+    document.querySelectorAll('.term-tab').forEach((btn) => {
+        btn.classList.remove('active');
+    });
+    apiFetch('/api/terminal/sessions').then(renderTerminalTabs).catch(()=>{});
+    connectTerminalWs(sessionId);
+}
+
+async function createNewTerminalTab(name="Host Terminal", cwd="/app") {
+    try {
+        const sess = await apiFetch('/api/terminal/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, cwd })
+        });
+        activeTerminalSessionId = sess.id;
+        initTerminalView();
+    } catch (err) {
+        showToast(`Failed to create terminal tab: ${err.message}`, 'error');
+    }
+}
+
+async function killCurrentTerminalTab() {
+    if (!activeTerminalSessionId) return;
+    try {
+        await apiFetch(`/api/terminal/sessions/${activeTerminalSessionId}`, { method: 'DELETE' });
+        if (termWs) termWs.close();
+        activeTerminalSessionId = null;
+        initTerminalView();
+    } catch (err) {
+        showToast(`Failed to kill tab: ${err.message}`, 'error');
+    }
+}
+
+function connectTerminalWs(sessionId) {
+    if (termWs) {
+        try { termWs.close(); } catch(e){}
+    }
+    
+    if (!xtermInstance) {
+        const container = document.getElementById('xterm-container');
+        container.innerHTML = '';
+        xtermInstance = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#0d1117',
+                foreground: '#f0f6fc',
+                cursor: '#58a6ff',
+                selectionBackground: 'rgba(56, 139, 253, 0.4)',
+                black: '#0d1117',
+                red: '#ff7b72',
+                green: '#3fb950',
+                yellow: '#d29922',
+                blue: '#58a6ff',
+                magenta: '#bc8cff',
+                cyan: '#39c5cf',
+                white: '#b1bac4'
+            },
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: 13,
+            rows: 28
+        });
+        fitAddon = new FitAddon.FitAddon();
+        xtermInstance.loadAddon(fitAddon);
+        xtermInstance.open(container);
+        setTimeout(() => fitAddon.fit(), 100);
+        
+        window.addEventListener('resize', () => {
+            if (fitAddon && activeTab === 'terminal') {
+                fitAddon.fit();
+                if (termWs && termWs.readyState === WebSocket.OPEN) {
+                    termWs.send(JSON.stringify({ type: 'resize', cols: xtermInstance.cols, rows: xtermInstance.rows }));
+                }
+            }
+        });
+    } else {
+        xtermInstance.reset();
+    }
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    termWs = new WebSocket(`${protocol}//${window.location.host}/ws/terminal?session_id=${sessionId}`);
+    
+    termWs.onopen = () => {
+        xtermInstance.onData(data => {
+            if (termWs.readyState === WebSocket.OPEN) {
+                termWs.send(data);
+            }
+        });
+        if (fitAddon) {
+            setTimeout(() => {
+                fitAddon.fit();
+                termWs.send(JSON.stringify({ type: 'resize', cols: xtermInstance.cols, rows: xtermInstance.rows }));
+            }, 150);
+        }
+    };
+    
+    termWs.onmessage = (event) => {
+        xtermInstance.write(event.data);
+    };
+    
+    termWs.onerror = () => {
+        xtermInstance.write('\r\n\x1b[31m[WebSocket Connection Error]\x1b[0m\r\n');
+    };
+}
+
+function sendTerminalCommand(cmd) {
+    if (termWs && termWs.readyState === WebSocket.OPEN) {
+        termWs.send(cmd + "\r");
+        if (xtermInstance) xtermInstance.focus();
+    } else {
+        showToast('Terminal not connected', 'error');
+    }
+}
+
+

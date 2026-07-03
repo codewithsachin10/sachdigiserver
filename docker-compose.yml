@@ -9,10 +9,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./storage:/app/storage
+      - /:/host_root
     environment:
       - PORT=7000
       - STORAGE_PATH=/app/storage
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=sachdeploy
       - MAX_ACTIVE_APPS=3
+      - TERM=xterm-256color
     restart: unless-stopped

@@ -311,3 +311,12 @@ def set_project_env(project_id: str, env_dict: dict):
         cursor.execute("INSERT INTO project_env (project_id, key, value) VALUES (?, ?, ?)", (project_id, k, str(v)))
     conn.commit()
     conn.close()
+
+def get_active_apps_count() -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as cnt FROM projects WHERE status = 'running'")
+    row = cursor.fetchone()
+    conn.close()
+    return int(row["cnt"]) if row and "cnt" in row.keys() else (int(row[0]) if row else 0)
+
