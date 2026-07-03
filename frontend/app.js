@@ -14,6 +14,33 @@ const userDisplay = document.getElementById('user-display');
 const tabViews = document.querySelectorAll('.tab-view');
 const navItems = document.querySelectorAll('.nav-item');
 
+// --- Helper: Robust API Fetch with Authorization Bearer Token & Error Handling ---
+async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('sach_token');
+    const headers = options.headers || {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    options.headers = headers;
+    options.credentials = 'include'; // Send cookies as fallback
+
+    try {
+        const res = await fetch(url, options);
+        if (res.status === 401 && !url.includes('/api/login')) {
+            // Session expired or unauthorized
+            console.warn('[SachDeploy] Unauthorized (401). Redirecting to login.');
+            localStorage.removeItem('sach_token');
+            if (ws) { try { ws.close(); } catch(e){} }
+            authScreen.classList.remove('hidden');
+            appScreen.classList.add('hidden');
+        }
+        return res;
+    } catch (err) {
+        console.error(`[SachDeploy] Network error calling ${url}:`, err);
+        throw err;
+    }
+}
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -23,30 +50,51 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const u = document.getElementById('username').value;
+        const u = document.getElementById('username').value.trim();
         const p = document.getElementById('password').value;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const origBtnText = submitBtn.textContent;
+
+        loginError.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in... ⏳';
+
         try {
-            const res = await fetch('/api/login', {
+            const res = await apiFetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
             });
+
             if (res.ok) {
+                const data = await res.json();
+                if (data.token) {
+                    localStorage.setItem('sach_token', data.token);
+                }
                 loginError.classList.add('hidden');
-                checkAuth();
+                showToast('✅ Welcome to SachDeploy Enterprise!', 'info');
+                await checkAuth();
+            } else if (res.status === 401 || res.status === 403) {
+                loginError.innerHTML = '❌ Invalid credentials. Default is <code class="text-white">admin</code> / <code class="text-white">sachdeploy</code>';
+                loginError.classList.remove('hidden');
             } else {
-                loginError.textContent = 'Invalid credentials';
+                const errData = await res.json().catch(() => ({}));
+                loginError.textContent = errData.detail || `Server Error (${res.status})`;
                 loginError.classList.remove('hidden');
             }
         } catch (err) {
-            loginError.textContent = 'Connection failed';
+            loginError.textContent = '❌ Cannot connect to backend server. Is Docker container running?';
             loginError.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = origBtnText;
         }
     });
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
-        await fetch('/api/logout', { method: 'POST' });
-        if (ws) ws.close();
+        try { await apiFetch('/api/logout', { method: 'POST' }); } catch(e) {}
+        localStorage.removeItem('sach_token');
+        if (ws) { try { ws.close(); } catch(e){} }
         location.reload();
     });
 
@@ -60,10 +108,10 @@ function setupEventListeners() {
 
 async function checkAuth() {
     try {
-        const res = await fetch('/api/me');
-        if (res.ok) {
+        const res = await apiFetch('/api/me');
+        if (res && res.ok) {
             currentUser = await res.json();
-            userDisplay.textContent = currentUser.username;
+            userDisplay.textContent = currentUser.username || 'admin';
             authScreen.classList.add('hidden');
             appScreen.classList.remove('hidden');
             initWebSocket();
@@ -83,13 +131,18 @@ function initWebSocket() {
     if (ws) {
         try { ws.close(); } catch(e){}
     }
+    const token = localStorage.getItem('sach_token') || '';
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}/ws/events`);
+    const wsUrl = `${proto}//${location.host}/ws/events?token=${encodeURIComponent(token)}`;
+    ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
         console.log('[SachDeploy] WebSocket connected');
-        document.getElementById('ws-status-dot').classList.remove('bg-red-500');
-        document.getElementById('ws-status-dot').classList.add('bg-green-500');
+        const dot = document.getElementById('ws-status-dot');
+        if (dot) {
+            dot.classList.remove('bg-red-500');
+            dot.classList.add('bg-green-500');
+        }
         if (reconnectTimer) clearInterval(reconnectTimer);
     };
 
@@ -101,8 +154,11 @@ function initWebSocket() {
     };
 
     ws.onclose = () => {
-        document.getElementById('ws-status-dot').classList.remove('bg-green-500');
-        document.getElementById('ws-status-dot').classList.add('bg-red-500');
+        const dot = document.getElementById('ws-status-dot');
+        if (dot) {
+            dot.classList.remove('bg-green-500');
+            dot.classList.add('bg-red-500');
+        }
         reconnectTimer = setTimeout(initWebSocket, 4000);
     };
 }
@@ -122,11 +178,16 @@ function handleWsMessage(msg) {
 
 function updateTopbarTelemetry(data) {
     if (!data) return;
-    document.getElementById('top-cpu').textContent = `${data.cpu_percent}%`;
-    document.getElementById('top-ram').textContent = `${data.ram_percent}%`;
-    document.getElementById('top-disk').textContent = `${data.disk_percent}%`;
-    document.getElementById('top-temp').textContent = `${data.temperature}°C`;
-    document.getElementById('top-tailscale').textContent = data.tailscale_ip;
+    const cpuEl = document.getElementById('top-cpu');
+    if (cpuEl) cpuEl.textContent = `${data.cpu_percent}%`;
+    const ramEl = document.getElementById('top-ram');
+    if (ramEl) ramEl.textContent = `${data.ram_percent}%`;
+    const diskEl = document.getElementById('top-disk');
+    if (diskEl) diskEl.textContent = `${data.disk_percent}%`;
+    const tempEl = document.getElementById('top-temp');
+    if (tempEl) tempEl.textContent = `${data.temperature}°C`;
+    const tsEl = document.getElementById('top-tailscale');
+    if (tsEl) tsEl.textContent = data.tailscale_ip || 'N/A';
 }
 
 // --- Tab Navigation ---
@@ -163,9 +224,11 @@ function refreshCurrentTab() {
 // --- Projects & Deployments ---
 async function loadProjects() {
     try {
-        const res = await fetch('/api/projects');
+        const res = await apiFetch('/api/projects');
+        if (!res || !res.ok) return;
         const projects = await res.json();
         const grid = document.getElementById('projects-grid');
+        if (!grid) return;
         
         if (projects.length === 0) {
             grid.innerHTML = `
@@ -188,8 +251,8 @@ async function loadProjects() {
                         <span class="badge ${badgeClass}">${p.status}</span>
                     </div>
                     <div class="text-xs text-gray-400 space-y-1 mb-4 font-mono">
-                        <div>Type: <span class="text-gray-200">${p.type.toUpperCase()}</span></div>
-                        <div>Source: <span class="text-gray-200 truncate inline-block max-w-[180px] align-bottom">${p.source}</span></div>
+                        <div>Type: <span class="text-gray-200">${(p.type || 'unknown').toUpperCase()}</span></div>
+                        <div>Source: <span class="text-gray-200 truncate inline-block max-w-[180px] align-bottom">${p.source || 'N/A'}</span></div>
                         <div class="flex items-center gap-2">Port: ${portLink}</div>
                     </div>
                 </div>
@@ -210,13 +273,13 @@ async function loadProjects() {
 
 async function projectAction(id, act) {
     showToast(`Initiating ${act}...`, 'info');
-    await fetch(`/api/projects/${id}/${act}`, { method: 'POST' });
+    await apiFetch(`/api/projects/${id}/${act}`, { method: 'POST' });
     loadProjects();
 }
 
 async function deleteProject(id, name) {
     if (!confirm(`Delete project '${name}' and all its container resources?`)) return;
-    await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
     showToast(`Project '${name}' deleted`, 'info');
     loadProjects();
 }
@@ -231,7 +294,7 @@ function closeDeployModal() {
 
 async function submitZipDeploy(e) {
     e.preventDefault();
-    const name = document.getElementById('zip-name').value;
+    const name = document.getElementById('zip-name').value.trim();
     const file = document.getElementById('zip-file').files[0];
     if (!file) return alert('Select a ZIP file');
 
@@ -243,10 +306,10 @@ async function submitZipDeploy(e) {
     openProgressModal(name);
 
     try {
-        const res = await fetch('/api/deploy/zip', { method: 'POST', body: formData });
-        if (!res.ok) {
-            const err = await res.json();
-            showToast(`Deploy Error: ${err.detail}`, 'error');
+        const res = await apiFetch('/api/deploy/zip', { method: 'POST', body: formData });
+        if (!res || !res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(`Deploy Error: ${err.detail || 'Upload failed'}`, 'error');
             closeProgressModal();
         }
     } catch (err) {
@@ -257,22 +320,22 @@ async function submitZipDeploy(e) {
 
 async function submitGitDeploy(e) {
     e.preventDefault();
-    const name = document.getElementById('git-name').value;
-    const url = document.getElementById('git-url').value;
-    const branch = document.getElementById('git-branch').value || 'main';
+    const name = document.getElementById('git-name').value.trim();
+    const url = document.getElementById('git-url').value.trim();
+    const branch = document.getElementById('git-branch').value.trim() || 'main';
 
     closeDeployModal();
     openProgressModal(name);
 
     try {
-        const res = await fetch('/api/deploy/git', {
+        const res = await apiFetch('/api/deploy/git', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, git_url: url, branch: branch })
         });
-        if (!res.ok) {
-            const err = await res.json();
-            showToast(`Deploy Error: ${err.detail}`, 'error');
+        if (!res || !res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(`Deploy Error: ${err.detail || 'Git clone failed'}`, 'error');
             closeProgressModal();
         }
     } catch (err) {
@@ -297,6 +360,7 @@ function closeProgressModal() {
 
 function updateDeployProgressModal(msg) {
     const list = document.getElementById('progress-steps-list');
+    if (!list) return;
     const stepId = `step-${msg.step_num}`;
     let el = document.getElementById(stepId);
     
@@ -325,9 +389,11 @@ function updateDeployProgressModal(msg) {
 // --- Portainer Replacement (Containers, Images, Volumes) ---
 async function loadContainers() {
     try {
-        const res = await fetch('/api/docker/containers');
+        const res = await apiFetch('/api/docker/containers');
+        if (!res || !res.ok) return;
         const containers = await res.json();
         const tbody = document.getElementById('containers-tbody');
+        if (!tbody) return;
         
         tbody.innerHTML = containers.map(c => {
             const statusClass = c.status === 'running' ? 'text-green-400' : 'text-gray-400';
@@ -336,7 +402,7 @@ async function loadContainers() {
             <tr class="border-b border-gray-800 hover:bg-gray-800/40 font-mono text-xs">
                 <td class="py-3 px-4 font-semibold text-white">${c.name}</td>
                 <td class="py-3 px-4 text-gray-300 truncate max-w-[180px]">${c.image}</td>
-                <td class="py-3 px-4 <span class="${statusClass} font-bold">${c.status.toUpperCase()}</span></td>
+                <td class="py-3 px-4 <span class="${statusClass} font-bold">${(c.status || '').toUpperCase()}</span></td>
                 <td class="py-3 px-4 text-gray-400">${portsStr}</td>
                 <td class="py-3 px-4 text-gray-400">${c.created}</td>
                 <td class="py-3 px-4 text-right space-x-1">
@@ -356,7 +422,7 @@ async function loadContainers() {
 async function dockerContainerAct(id, act) {
     if (act === 'delete' && !confirm('Force delete this container?')) return;
     showToast(`Executing container ${act}...`, 'info');
-    await fetch(`/api/docker/containers/${id}/action`, {
+    await apiFetch(`/api/docker/containers/${id}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: act })
@@ -367,7 +433,7 @@ async function dockerContainerAct(id, act) {
 async function duplicateContainerPrompt(id, oldName) {
     const newName = prompt('Enter name for duplicate container:', `${oldName}-copy`);
     if (!newName) return;
-    await fetch(`/api/docker/containers/${id}/action`, {
+    await apiFetch(`/api/docker/containers/${id}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'duplicate', new_name: newName })
@@ -377,27 +443,31 @@ async function duplicateContainerPrompt(id, oldName) {
 }
 
 async function loadImages() {
-    const res = await fetch('/api/docker/images');
-    const images = await res.json();
-    const tbody = document.getElementById('images-tbody');
-    tbody.innerHTML = images.map(img => `
-        <tr class="border-b border-gray-800 font-mono text-xs">
-            <td class="py-2.5 px-4 text-gray-200">${img.tags.join(', ')}</td>
-            <td class="py-2.5 px-4 text-gray-400">${img.id[:12]}</td>
-            <td class="py-2.5 px-4 text-gray-400">${img.size_mb} MB</td>
-            <td class="py-2.5 px-4 text-gray-400">${img.created}</td>
-            <td class="py-2.5 px-4 text-right">
-                <button onclick="deleteDockerImage('${img.id}')" class="px-2 py-1 bg-red-500/20 text-red-400 rounded">Remove</button>
-            </td>
-        </tr>
-    `).join('');
+    try {
+        const res = await apiFetch('/api/docker/images');
+        if (!res || !res.ok) return;
+        const images = await res.json();
+        const tbody = document.getElementById('images-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = images.map(img => `
+            <tr class="border-b border-gray-800 font-mono text-xs">
+                <td class="py-2.5 px-4 text-gray-200">${(img.tags || []).join(', ')}</td>
+                <td class="py-2.5 px-4 text-gray-400">${(img.id || '').substring(0, 12)}</td>
+                <td class="py-2.5 px-4 text-gray-400">${img.size_mb} MB</td>
+                <td class="py-2.5 px-4 text-gray-400">${img.created}</td>
+                <td class="py-2.5 px-4 text-right">
+                    <button onclick="deleteDockerImage('${img.id}')" class="px-2 py-1 bg-red-500/20 text-red-400 rounded">Remove</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch(e) { console.error('Images load err:', e); }
 }
 
 async function pullDockerImagePrompt() {
     const name = prompt('Enter Docker image name to pull (e.g. redis:alpine, nginx:latest):');
     if (!name) return;
     showToast(`Pulling ${name}... Please wait.`, 'info');
-    await fetch('/api/docker/images/pull', {
+    await apiFetch('/api/docker/images/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_name: name })
@@ -408,15 +478,16 @@ async function pullDockerImagePrompt() {
 
 async function deleteDockerImage(id) {
     if (!confirm('Remove this Docker image?')) return;
-    await fetch(`/api/docker/images/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/docker/images/${id}`, { method: 'DELETE' });
     loadImages();
 }
 
 async function pruneDockerImages() {
     if (!confirm('Prune all dangling Docker images?')) return;
-    const res = await fetch('/api/docker/images/prune', { method: 'POST' });
+    const res = await apiFetch('/api/docker/images/prune', { method: 'POST' });
+    if (!res || !res.ok) return;
     const data = await res.json();
-    showToast(`Pruned! Reclaimed ${Math.round(data.reclaimed_bytes / 1024 / 1024)} MB`, 'info');
+    showToast(`Pruned! Reclaimed ${Math.round((data.reclaimed_bytes || 0) / 1024 / 1024)} MB`, 'info');
     loadImages();
 }
 
@@ -425,18 +496,21 @@ let currentDirPath = '';
 async function loadFiles(path = '') {
     currentDirPath = path;
     try {
-        const res = await fetch(`/api/files/list?path=${encodeURIComponent(path)}`);
+        const res = await apiFetch(`/api/files/list?path=${encodeURIComponent(path)}`);
+        if (!res || !res.ok) return;
         const data = await res.json();
-        document.getElementById('file-current-path').textContent = `/storage/${data.current_path || ''}`;
+        const pathEl = document.getElementById('file-current-path');
+        if (pathEl) pathEl.textContent = `/storage/${data.current_path || ''}`;
         
         const list = document.getElementById('file-entries-list');
+        if (!list) return;
         let html = '';
         if (path !== '') {
             const parent = path.split('/').slice(0, -1).join('/');
             html += `<div onclick="loadFiles('${parent}')" class="flex items-center gap-3 p-2.5 hover:bg-gray-800/50 rounded cursor-pointer text-indigo-400 font-mono text-sm">📁 .. (Up one directory)</div>`;
         }
 
-        data.entries.forEach(e => {
+        (data.entries || []).forEach(e => {
             const icon = e.is_dir ? '📁' : '📄';
             const action = e.is_dir ? `loadFiles('${e.path}')` : `openFileEditor('${e.path}', '${e.name}')`;
             html += `
@@ -457,13 +531,13 @@ async function loadFiles(path = '') {
 }
 
 async function openFileEditor(path, name) {
-    const res = await fetch(`/api/files/read?path=${encodeURIComponent(path)}`);
-    if (!res.ok) return alert('File too large or cannot be read.');
+    const res = await apiFetch(`/api/files/read?path=${encodeURIComponent(path)}`);
+    if (!res || !res.ok) return alert('File too large or cannot be read.');
     const data = await res.json();
     
     document.getElementById('editor-filepath').value = path;
     document.getElementById('editor-filename').textContent = name;
-    document.getElementById('editor-textarea').value = data.content;
+    document.getElementById('editor-textarea').value = data.content || '';
     document.getElementById('file-editor-modal').classList.add('open');
 }
 
@@ -474,7 +548,7 @@ function closeFileEditor() {
 async function saveFileContent() {
     const path = document.getElementById('editor-filepath').value;
     const content = document.getElementById('editor-textarea').value;
-    await fetch('/api/files/write', {
+    await apiFetch('/api/files/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: path, content: content })
@@ -487,7 +561,7 @@ async function createNewFolderPrompt() {
     const name = prompt('New folder name:');
     if (!name) return;
     const full = currentDirPath ? `${currentDirPath}/${name}` : name;
-    await fetch('/api/files/folder', {
+    await apiFetch('/api/files/folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: full })
@@ -497,37 +571,41 @@ async function createNewFolderPrompt() {
 
 async function deleteFileItem(path) {
     if (!confirm(`Delete ${path}?`)) return;
-    await fetch(`/api/files/delete?path=${encodeURIComponent(path)}`, { method: 'DELETE' });
+    await apiFetch(`/api/files/delete?path=${encodeURIComponent(path)}`, { method: 'DELETE' });
     loadFiles(currentDirPath);
 }
 
 // --- Backups Service ---
 async function loadBackups() {
-    const res = await fetch('/api/backups');
-    const backups = await res.json();
-    const list = document.getElementById('backups-list');
-    if (backups.length === 0) {
-        list.innerHTML = '<div class="p-6 text-center text-gray-500">No system backups generated yet.</div>';
-        return;
-    }
-    list.innerHTML = backups.map(b => `
-        <div class="glass-card p-4 flex items-center justify-between font-mono text-sm">
-            <div>
-                <div class="font-bold text-white">${b.filename}</div>
-                <div class="text-xs text-gray-400">Created: ${b.created_at} | Size: ${b.size_mb} MB</div>
+    try {
+        const res = await apiFetch('/api/backups');
+        if (!res || !res.ok) return;
+        const backups = await res.json();
+        const list = document.getElementById('backups-list');
+        if (!list) return;
+        if (backups.length === 0) {
+            list.innerHTML = '<div class="p-6 text-center text-gray-500">No system backups generated yet.</div>';
+            return;
+        }
+        list.innerHTML = backups.map(b => `
+            <div class="glass-card p-4 flex items-center justify-between font-mono text-sm">
+                <div>
+                    <div class="font-bold text-white">${b.filename}</div>
+                    <div class="text-xs text-gray-400">Created: ${b.created_at} | Size: ${b.size_mb} MB</div>
+                </div>
+                <div class="space-x-2">
+                    <button onclick="restoreBackupConfirm('${b.filename}')" class="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 hover:bg-indigo-500/30 text-xs">Restore</button>
+                    <button onclick="deleteBackupFile('${b.filename}')" class="px-3 py-1.5 bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30 text-xs">Delete</button>
+                </div>
             </div>
-            <div class="space-x-2">
-                <button onclick="restoreBackupConfirm('${b.filename}')" class="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 hover:bg-indigo-500/30 text-xs">Restore</button>
-                <button onclick="deleteBackupFile('${b.filename}')" class="px-3 py-1.5 bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30 text-xs">Delete</button>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    } catch(e) { console.error('Backups load err:', e); }
 }
 
 async function createNewBackup() {
     showToast('Creating full system ZIP backup...', 'info');
-    const res = await fetch('/api/backups/create', { method: 'POST' });
-    if (res.ok) {
+    const res = await apiFetch('/api/backups/create', { method: 'POST' });
+    if (res && res.ok) {
         showToast('System backup generated!', 'info');
         loadBackups();
     } else {
@@ -538,7 +616,7 @@ async function createNewBackup() {
 async function restoreBackupConfirm(filename) {
     if (!confirm(`RESTORE SYSTEM from '${filename}'? This will overwrite existing SQLite DB and project configs!`)) return;
     showToast('Restoring system state...', 'info');
-    await fetch('/api/backups/restore', {
+    await apiFetch('/api/backups/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: filename })
@@ -549,30 +627,41 @@ async function restoreBackupConfirm(filename) {
 
 async function deleteBackupFile(filename) {
     if (!confirm(`Delete backup '${filename}'?`)) return;
-    await fetch(`/api/backups/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    await apiFetch(`/api/backups/${encodeURIComponent(filename)}`, { method: 'DELETE' });
     loadBackups();
 }
 
 // --- Server Control & Telemetry ---
 async function fetchTelemetryNow() {
-    const res = await fetch('/api/telemetry');
-    const data = await res.json();
-    updateTopbarTelemetry(data);
-    renderServerStats(data);
+    try {
+        const res = await apiFetch('/api/telemetry');
+        if (!res || !res.ok) return;
+        const data = await res.json();
+        updateTopbarTelemetry(data);
+        renderServerStats(data);
+    } catch(e) {}
 }
 
 function renderServerStats(data) {
     if (!data) return;
-    document.getElementById('srv-os').textContent = data.os;
-    document.getElementById('srv-kernel').textContent = data.kernel;
-    document.getElementById('srv-uptime').textContent = `${Math.floor(data.uptime_seconds / 3600)}h ${Math.floor((data.uptime_seconds % 3600) / 60)}m`;
-    document.getElementById('srv-docker').textContent = `${data.docker_version} (${data.docker_status})`;
+    const osEl = document.getElementById('srv-os');
+    if (osEl) osEl.textContent = data.os;
+    const kernEl = document.getElementById('srv-kernel');
+    if (kernEl) kernEl.textContent = data.kernel;
+    const upEl = document.getElementById('srv-uptime');
+    if (upEl) upEl.textContent = `${Math.floor(data.uptime_seconds / 3600)}h ${Math.floor((data.uptime_seconds % 3600) / 60)}m`;
+    const docEl = document.getElementById('srv-docker');
+    if (docEl) docEl.textContent = `${data.docker_version} (${data.docker_status})`;
     
-    document.getElementById('srv-ram-bar').style.width = `${data.ram_percent}%`;
-    document.getElementById('srv-ram-txt').textContent = `${data.ram_used_mb} MB / ${data.ram_total_mb} MB (${data.ram_percent}%)`;
+    const ramBar = document.getElementById('srv-ram-bar');
+    if (ramBar) ramBar.style.width = `${data.ram_percent}%`;
+    const ramTxt = document.getElementById('srv-ram-txt');
+    if (ramTxt) ramTxt.textContent = `${data.ram_used_mb} MB / ${data.ram_total_mb} MB (${data.ram_percent}%)`;
     
-    document.getElementById('srv-disk-bar').style.width = `${data.disk_percent}%`;
-    document.getElementById('srv-disk-txt').textContent = `${data.disk_used_gb} GB / ${data.disk_total_gb} GB (${data.disk_percent}%)`;
+    const diskBar = document.getElementById('srv-disk-bar');
+    if (diskBar) diskBar.style.width = `${data.disk_percent}%`;
+    const diskTxt = document.getElementById('srv-disk-txt');
+    if (diskTxt) diskTxt.textContent = `${data.disk_used_gb} GB / ${data.disk_total_gb} GB (${data.disk_percent}%)`;
 }
 
 async function triggerServerAction(act) {
@@ -581,11 +670,12 @@ async function triggerServerAction(act) {
     if (act === 'restart_service' && !confirm('Restart SachDeploy background engine?')) return;
 
     showToast(`Sending command: ${act}...`, 'info');
-    const res = await fetch('/api/server/action', {
+    const res = await apiFetch('/api/server/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: act })
     });
+    if (!res || !res.ok) return;
     const data = await res.json();
     showToast(data.message || 'Command executed', 'info');
 }
@@ -596,7 +686,8 @@ async function openLogsModal(id, name) {
     document.getElementById('logs-terminal').textContent = 'Loading logs...';
     document.getElementById('logs-modal').classList.add('open');
     try {
-        const res = await fetch(`/api/projects/${id}/logs`);
+        const res = await apiFetch(`/api/projects/${id}/logs`);
+        if (!res || !res.ok) throw new Error();
         const data = await res.json();
         document.getElementById('logs-terminal').textContent = data.logs || 'No logs output generated yet.';
     } catch(e) {
@@ -614,7 +705,8 @@ async function openEnvModal(id, name) {
     document.getElementById('env-textarea').value = 'Loading...';
     document.getElementById('env-modal').classList.add('open');
     try {
-        const res = await fetch(`/api/projects/${id}/env`);
+        const res = await apiFetch(`/api/projects/${id}/env`);
+        if (!res || !res.ok) throw new Error();
         const envObj = await res.json();
         const lines = Object.entries(envObj).map(([k, v]) => `${k}=${v}`).join('\n');
         document.getElementById('env-textarea').value = lines;
@@ -635,7 +727,7 @@ async function saveProjectEnvVariables() {
             envObj[trimmed.substring(0, idx).trim()] = trimmed.substring(idx + 1).trim();
         }
     });
-    await fetch(`/api/projects/${activeDeployProjectId}/env`, {
+    await apiFetch(`/api/projects/${activeDeployProjectId}/env`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ env: envObj })
@@ -646,19 +738,24 @@ async function saveProjectEnvVariables() {
 
 // --- Settings ---
 async function loadSettings() {
-    const res = await fetch('/api/settings');
-    const data = await res.json();
-    document.getElementById('set-ram-limit').value = data.max_ram_mb || '512';
-    document.getElementById('set-max-apps').value = data.max_active_apps || '3';
+    try {
+        const res = await apiFetch('/api/settings');
+        if (!res || !res.ok) return;
+        const data = await res.json();
+        const ramEl = document.getElementById('set-ram-limit');
+        if (ramEl) ramEl.value = data.max_ram_mb || '512';
+        const appEl = document.getElementById('set-max-apps');
+        if (appEl) appEl.value = data.max_active_apps || '3';
+    } catch(e) {}
 }
 async function saveSettingsForm(e) {
     e.preventDefault();
-    await fetch('/api/settings', {
+    await apiFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'max_ram_mb', value: document.getElementById('set-ram-limit').value })
     });
-    await fetch('/api/settings', {
+    await apiFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'max_active_apps', value: document.getElementById('set-max-apps').value })

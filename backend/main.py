@@ -163,12 +163,12 @@ async def login(req: LoginRequest, response: Response):
     res = authenticate_user(req.username, req.password)
     if not res:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    response.set_cookie(key="sach_session", value=res["token"], httponly=False, max_age=86400 * 7)
+    response.set_cookie(key="sach_session", value=res["token"], httponly=False, max_age=86400 * 7, path="/", samesite="lax")
     return res
 
 @app.post("/api/logout")
 async def logout(response: Response):
-    response.delete_cookie("sach_session")
+    response.delete_cookie("sach_session", path="/", samesite="lax")
     return {"message": "Logged out successfully"}
 
 @app.get("/api/me")
