@@ -2,6 +2,7 @@ import os
 import sqlite3
 import hashlib
 import secrets
+import json
 from datetime import datetime
 
 def get_db_path():
@@ -47,6 +48,50 @@ def init_db():
     )
     """)
     
+    # Create notifications table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        read INTEGER DEFAULT 0
+    )
+    """)
+    
+    # Create deploy_history table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS deploy_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id TEXT NOT NULL,
+        version TEXT,
+        commit_hash TEXT,
+        commit_msg TEXT,
+        author TEXT,
+        duration INTEGER,
+        status TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    # Create settings table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+    """)
+    
+    # Create project_env table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS project_env (
+        project_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        PRIMARY KEY (project_id, key)
+    )
+    """)
+    
     # Initialize default admin user if not present
     admin_user = os.environ.get("ADMIN_USERNAME", "admin")
     admin_pass = os.environ.get("ADMIN_PASSWORD", "sachdeploy")
@@ -57,10 +102,23 @@ def init_db():
                        (admin_user, hash_password(admin_pass)))
         print(f"[SachDeploy DB] Created default user: {admin_user}")
         
+    # Initialize default settings if not present
+    defaults = {
+        "server_name": "SachDeploy Stable Server",
+        "theme": "dark",
+        "max_ram_mb": "512",
+        "max_cpu_core": "0.5",
+        "max_active_apps": "3",
+        "port_range_min": "8001",
+        "port_range_max": "8100"
+    }
+    for k, v in defaults.items():
+        cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
+        
     conn.commit()
     conn.close()
 
-# User helpers
+# --- User Helpers ---
 def verify_user(username: str, password: str):
     conn = get_connection()
     cursor = conn.cursor()
@@ -88,7 +146,7 @@ def get_user_by_token(token: str):
     conn.close()
     return dict(row) if row else None
 
-# Project helpers
+# --- Project Helpers ---
 def get_all_projects():
     conn = get_connection()
     cursor = conn.cursor()
@@ -153,5 +211,103 @@ def delete_project_db(project_id: str):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    cursor.execute("DELETE FROM deploy_history WHERE project_id = ?", (project_id,))
+    cursor.execute("DELETE FROM project_env WHERE project_id = ?", (project_id,))
+    conn.commit()
+    conn.close()
+
+# --- Notifications Helpers ---
+def add_notification(type_str: str, message: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("INSERT INTO notifications (type, message, timestamp, read) VALUES (?, ?, ?, 0)", (type_str, message, now))
+    conn.commit()
+    conn.close()
+
+def get_notifications(limit: int = 50):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM notifications ORDER BY id DESC LIMIT ?", (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def mark_notifications_read():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE notifications SET read = 1")
+    conn.commit()
+    conn.close()
+
+def clear_notifications():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM notifications")
+    conn.commit()
+    conn.close()
+
+# --- Deploy History Helpers ---
+def add_deploy_history(project_id: str, version: str, commit_hash: str, commit_msg: str, author: str, duration: int, status: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+    INSERT INTO deploy_history (project_id, version, commit_hash, commit_msg, author, duration, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (project_id, version, commit_hash, commit_msg, author, duration, status, now))
+    conn.commit()
+    conn.close()
+
+def get_deploy_history(project_id: str = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if project_id:
+        cursor.execute("SELECT * FROM deploy_history WHERE project_id = ? ORDER BY id DESC", (project_id,))
+    else:
+        cursor.execute("SELECT * FROM deploy_history ORDER BY id DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+# --- Settings Helpers ---
+def get_setting(key: str, default: str = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+def set_setting(key: str, value: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, str(value)))
+    conn.commit()
+    conn.close()
+
+def get_all_settings():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM settings")
+    rows = cursor.fetchall()
+    conn.close()
+    return {r["key"]: r["value"] for r in rows}
+
+# --- Project Environment Variables Helpers ---
+def get_project_env(project_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT key, value FROM project_env WHERE project_id = ?", (project_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return {r["key"]: r["value"] for r in rows}
+
+def set_project_env(project_id: str, env_dict: dict):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM project_env WHERE project_id = ?", (project_id,))
+    for k, v in env_dict.items():
+        cursor.execute("INSERT INTO project_env (project_id, key, value) VALUES (?, ?, ?)", (project_id, k, str(v)))
     conn.commit()
     conn.close()
