@@ -8,29 +8,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from backend.db import (
+from backend.database import (
     init_db, get_all_projects, get_project, get_project_by_name,
     create_project_db, update_project_status, delete_project_db,
     get_notifications, mark_notifications_read, clear_notifications,
     get_all_settings, set_setting, get_project_env, set_project_env, get_deploy_history
 )
 from backend.auth import authenticate_user, get_current_user
-from backend.docker_manager import (
+from backend.docker import (
     find_next_free_port, check_active_apps_limit, start_container,
     stop_container, restart_container, remove_container_and_image,
     get_container_status, get_container_logs
 )
-from backend.deploy import get_storage_dirs, extract_zip, clone_repo, detect_project_type_and_template, deploy_project_background
-from backend.guard import SystemGuard
-from backend.recovery import auto_recover_apps
-from backend.telemetry import get_system_telemetry
-import backend.portainer_service as portainer
-import backend.file_service as file_mgr
-import backend.backup_service as backup_svc
-import backend.server_control as sys_ctrl
-import backend.terminal_service as term_svc
-import backend.marketplace as marketplace_cat
-import backend.marketplace_service as marketplace_svc
+from backend.deployment import get_storage_dirs, extract_zip, clone_repo, detect_project_type_and_template, deploy_project_background
+from backend.security import SystemGuard
+from backend.system import auto_recover_apps
+import backend.system.portainer as portainer
+import backend.system.files as file_mgr
+import backend.system.backup as backup_svc
+import backend.system.control as sys_ctrl
+import backend.terminal.terminal_service as term_svc
+import backend.marketplace.catalog as marketplace_cat
+import backend.marketplace.service as marketplace_svc
+from backend.monitoring import get_system_telemetry
 
 app = FastAPI(title="SachDeploy v2.0 Enterprise", version="2.0.0")
 

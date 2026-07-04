@@ -48,81 +48,124 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEventListeners() {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const u = document.getElementById('username').value.trim();
-        const p = document.getElementById('password').value;
-        const submitBtn = loginForm.querySelector('button[type="submit"]');
-        const origBtnText = submitBtn.textContent;
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const origBtnText = submitBtn.textContent;
 
-        loginError.classList.add('hidden');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Signing in... ⏳';
+            if (loginError) loginError.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in... ⏳';
 
-        try {
-            const res = await apiFetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p })
-            });
+            try {
+                const res = await apiFetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
 
-            if (res.ok) {
-                const data = await res.json();
-                if (data.token) {
-                    localStorage.setItem('sach_token', data.token);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.token) {
+                        localStorage.setItem('sach_token', data.token);
+                    }
+                    if (loginError) loginError.classList.add('hidden');
+                    showToast('✅ Welcome to SachDeploy Enterprise!', 'info');
+                    window.location.href = '/';
+                } else if (res.status === 401 || res.status === 403) {
+                    if (loginError) {
+                        loginError.innerHTML = '❌ Invalid credentials. Default is <code class="text-white">admin</code> / <code class="text-white">sachdeploy</code>';
+                        loginError.classList.remove('hidden');
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    if (loginError) {
+                        loginError.textContent = errData.detail || `Server Error (${res.status})`;
+                        loginError.classList.remove('hidden');
+                    }
                 }
-                loginError.classList.add('hidden');
-                showToast('✅ Welcome to SachDeploy Enterprise!', 'info');
-                await checkAuth();
-            } else if (res.status === 401 || res.status === 403) {
-                loginError.innerHTML = '❌ Invalid credentials. Default is <code class="text-white">admin</code> / <code class="text-white">sachdeploy</code>';
-                loginError.classList.remove('hidden');
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                loginError.textContent = errData.detail || `Server Error (${res.status})`;
-                loginError.classList.remove('hidden');
+            } catch (err) {
+                if (loginError) {
+                    loginError.textContent = '❌ Cannot connect to backend server. Is Docker container running?';
+                    loginError.classList.remove('hidden');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = origBtnText;
             }
-        } catch (err) {
-            loginError.textContent = '❌ Cannot connect to backend server. Is Docker container running?';
-            loginError.classList.remove('hidden');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = origBtnText;
-        }
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try { await apiFetch('/api/logout', { method: 'POST' }); } catch(e) {}
-        localStorage.removeItem('sach_token');
-        if (ws) { try { ws.close(); } catch(e){} }
-        location.reload();
-    });
-
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const tab = item.getAttribute('data-tab');
-            switchTab(tab);
         });
-    });
+    }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
+    }
+}
+
+async function logoutUser() {
+    try { await apiFetch('/api/logout', { method: 'POST' }); } catch(e) {}
+    localStorage.removeItem('sach_token');
+    if (ws) { try { ws.close(); } catch(e){} }
+    window.location.href = '/login.html';
 }
 
 async function checkAuth() {
+    const isLoginPage = window.location.pathname.endsWith('/login.html') || window.location.pathname.endsWith('/login');
     try {
         const res = await apiFetch('/api/me');
         if (res && res.ok) {
             currentUser = await res.json();
-            userDisplay.textContent = currentUser.username || 'admin';
-            authScreen.classList.add('hidden');
-            appScreen.classList.remove('hidden');
+            const userEl = document.getElementById('user-display');
+            if (userEl) userEl.textContent = currentUser.username || 'admin';
+            
+            if (isLoginPage) {
+                window.location.href = '/';
+                return;
+            }
+            if (authScreen) authScreen.classList.add('hidden');
+            if (appScreen) appScreen.classList.remove('hidden');
+            
             initWebSocket();
-            switchTab('projects');
+            initCurrentPage();
         } else {
-            authScreen.classList.remove('hidden');
-            appScreen.classList.add('hidden');
+            if (!isLoginPage) {
+                window.location.href = '/login.html';
+            }
         }
     } catch (e) {
-        authScreen.classList.remove('hidden');
-        appScreen.classList.add('hidden');
+        if (!isLoginPage) {
+            window.location.href = '/login.html';
+        }
+    }
+}
+
+function initCurrentPage() {
+    const path = window.location.pathname;
+    if (path === '/' || path === '/index.html' || path === '/dashboard.html' || path === '/dashboard') {
+        initDashboardPage();
+    } else if (path.includes('projects')) {
+        loadProjects();
+    } else if (path.includes('deployments')) {
+        loadDeployments();
+    } else if (path.includes('marketplace')) {
+        loadMarketplace();
+    } else if (path.includes('containers')) {
+        loadContainers();
+    } else if (path.includes('volumes')) {
+        loadVolumes();
+    } else if (path.includes('networks')) {
+        loadNetworks();
+    } else if (path.includes('monitoring')) {
+        initMonitoringPage();
+    } else if (path.includes('terminal')) {
+        if (typeof initTerminalView === 'function') initTerminalView();
+    } else if (path.includes('settings')) {
+        loadSettings();
+    } else if (path.includes('support')) {
+        loadBackups();
     }
 }
 
@@ -188,39 +231,108 @@ function updateTopbarTelemetry(data) {
     if (tempEl) tempEl.textContent = `${data.temperature}°C`;
     const tsEl = document.getElementById('top-tailscale');
     if (tsEl) tsEl.textContent = data.tailscale_ip || 'N/A';
+
+    // Update Monitoring Page metrics if present
+    const monCpu = document.getElementById('mon-cpu-val');
+    if (monCpu) monCpu.textContent = `${data.cpu_percent}%`;
+    const monRam = document.getElementById('mon-ram-val');
+    if (monRam) monRam.textContent = `${data.ram_percent}%`;
+    const monDisk = document.getElementById('mon-disk-val');
+    if (monDisk) monDisk.textContent = `${data.disk_percent}%`;
+
+    // Update Server stats if elements present
+    renderServerStats(data);
 }
 
-// --- Tab Navigation ---
+// --- Navigation & Page Loaders ---
 function switchTab(tabName) {
-    activeTab = tabName;
-    navItems.forEach(item => {
-        if (item.getAttribute('data-tab') === tabName) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-
-    tabViews.forEach(view => {
-        if (view.id === `view-${tabName}`) {
-            view.classList.remove('hidden');
-        } else {
-            view.classList.add('hidden');
-        }
-    });
-
-    refreshCurrentTab();
+    if (tabName === 'projects') window.location.href = '/projects.html';
+    else if (tabName === 'containers') window.location.href = '/containers.html';
+    else if (tabName === 'marketplace') window.location.href = '/marketplace.html';
+    else if (tabName === 'terminal') window.location.href = '/terminal.html';
+    else if (tabName === 'files') window.location.href = '/settings.html';
+    else if (tabName === 'backups') window.location.href = '/support.html';
+    else if (tabName === 'server') window.location.href = '/monitoring.html';
+    else if (tabName === 'settings') window.location.href = '/settings.html';
+    else window.location.href = '/';
 }
 
 function refreshCurrentTab() {
-    if (activeTab === 'projects') loadProjects();
-    else if (activeTab === 'containers') loadContainers();
-    else if (activeTab === 'marketplace') loadMarketplace();
-    else if (activeTab === 'terminal') initTerminalView();
-    else if (activeTab === 'files') loadFiles('');
-    else if (activeTab === 'backups') loadBackups();
-    else if (activeTab === 'server') fetchTelemetryNow();
-    else if (activeTab === 'settings') loadSettings();
+    initCurrentPage();
+}
+
+function initDashboardPage() {
+    fetchTelemetryNow();
+    setInterval(fetchTelemetryNow, 3000);
+    loadProjects();
+}
+
+function initMonitoringPage() {
+    fetchTelemetryNow();
+    setInterval(fetchTelemetryNow, 2000);
+}
+
+async function loadDeployments() {
+    try {
+        const res = await apiFetch('/api/projects');
+        if (!res || !res.ok) return;
+        const projects = await res.json();
+    } catch(e) {}
+}
+
+async function loadVolumes() {
+    try {
+        const res = await apiFetch('/api/docker/volumes');
+        if (!res || !res.ok) return;
+        const volumes = await res.json();
+        const tbody = document.getElementById('volumes-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = (volumes || []).map(v => `
+            <tr class="border-b border-white/5 hover:bg-white/[0.02] font-mono text-xs">
+                <td class="py-3 px-6 text-white font-bold">${v.name}</td>
+                <td class="py-3 px-6 text-gray-300">${v.driver || 'local'}</td>
+                <td class="py-3 px-6 text-gray-400">${v.scope || 'local'}</td>
+                <td class="py-3 px-6 text-gray-400">${v.created || 'N/A'}</td>
+                <td class="py-3 px-6 text-right">
+                    <button onclick="removeVolume('${v.name}')" class="px-2.5 py-1 bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30">Remove</button>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" class="py-6 text-center text-gray-500">No volumes found</td></tr>';
+    } catch(e) {}
+}
+
+async function removeVolume(name) {
+    if (!confirm(`Remove Docker volume '${name}'?`)) return;
+    await apiFetch(`/api/docker/volumes/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    loadVolumes();
+}
+
+async function loadNetworks() {
+    try {
+        const res = await apiFetch('/api/docker/networks');
+        if (!res || !res.ok) return;
+        const networks = await res.json();
+        const tbody = document.getElementById('networks-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = (networks || []).map(n => `
+            <tr class="border-b border-white/5 hover:bg-white/[0.02] font-mono text-xs">
+                <td class="py-3 px-6 text-white font-bold">${n.name}</td>
+                <td class="py-3 px-6 text-gray-400">${(n.id || '').substring(0, 12)}</td>
+                <td class="py-3 px-6 text-gray-300">${n.driver || 'bridge'}</td>
+                <td class="py-3 px-6 text-gray-400">${n.scope || 'local'}</td>
+                <td class="py-3 px-6 text-gray-400">${n.subnet || 'N/A'}</td>
+                <td class="py-3 px-6 text-right">
+                    ${['bridge', 'host', 'none'].includes(n.name) ? '<span class="text-gray-600 text-[10px]">System</span>' : `<button onclick="removeNetwork('${n.id}')" class="px-2.5 py-1 bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30">Remove</button>`}
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="6" class="py-6 text-center text-gray-500">No networks found</td></tr>';
+    } catch(e) {}
+}
+
+async function removeNetwork(id) {
+    if (!confirm('Remove this Docker network?')) return;
+    await apiFetch(`/api/docker/networks/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    loadNetworks();
 }
 
 

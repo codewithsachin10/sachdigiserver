@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Support Center | SachDeploy</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@600;700;800&family=JetBrains+Mono:wght@400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#10131a",
+                    "on-background": "#e1e2ec",
+                    "secondary-fixed": "#dce2f7",
+                    "primary": "#adc6ff",
+                    "on-secondary-container": "#aeb5c9",
+                    "on-primary": "#002e6a",
+                    "on-error-container": "#ffdad6",
+                    "primary-container": "#4d8eff",
+                    "on-primary-fixed-variant": "#004395",
+                    "secondary": "#c0c6db",
+                    "on-primary-container": "#00285d",
+                    "on-error": "#690005",
+                    "secondary-container": "#404758",
+                    "surface-container": "#1d2027",
+                    "outline": "#8c909f",
+                    "background": "#10131a",
+                    "on-tertiary": "#502400",
+                    "surface-container-low": "#191b23",
+                    "on-tertiary-fixed-variant": "#723600",
+                    "on-surface-variant": "#c2c6d6",
+                    "surface-container-highest": "#32353c",
+                    "surface-container-high": "#272a31",
+                    "inverse-primary": "#005ac2",
+                    "on-tertiary-container": "#461f00",
+                    "primary-fixed": "#d8e2ff",
+                    "on-secondary": "#293040",
+                    "inverse-surface": "#e1e2ec",
+                    "error": "#ffb4ab",
+                    "outline-variant": "#424754",
+                    "tertiary-fixed": "#ffdcc6",
+                    "on-tertiary-fixed": "#311400",
+                    "on-primary-fixed": "#001a42",
+                    "on-surface": "#e1e2ec",
+                    "secondary-fixed-dim": "#c0c6db",
+                    "tertiary-fixed-dim": "#ffb786",
+                    "surface-tint": "#adc6ff",
+                    "error-container": "#93000a",
+                    "tertiary-container": "#df7412",
+                    "surface-bright": "#363941",
+                    "tertiary": "#ffb786",
+                    "primary-fixed-dim": "#adc6ff",
+                    "on-secondary-fixed-variant": "#404758",
+                    "surface-dim": "#10131a",
+                    "inverse-on-surface": "#2e3038",
+                    "surface-container-lowest": "#0b0e15",
+                    "on-secondary-fixed": "#141b2b",
+                    "surface-variant": "#32353c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "stack-lg": "48px",
+                    "section-gap": "96px",
+                    "margin-mobile": "16px",
+                    "unit": "4px",
+                    "stack-md": "24px",
+                    "stack-sm": "12px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "display-xl": ["Geist"],
+                    "title-md": ["Geist"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "code-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}],
+                    "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "display-xl": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                    "title-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-sm": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400"}],
+                    "code-md": ["14px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease-out;
+        }
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+        }
+        .inner-glow {
+            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #18181b;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #32353c;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-background min-h-screen font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-40 flex justify-between items-center px-gutter h-16 bg-surface/80 dark:bg-background/80 backdrop-blur-xl bg-surface-container/30 border-b border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-8">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">SachDeploy</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200" href="#">Docs</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1" href="#">Support</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-label-sm w-48 text-on-surface" placeholder="Search documentation..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-white/5 rounded-full transition-colors"><span class="material-symbols-outlined">memory</span></button>
+<button class="p-2 hover:bg-white/5 rounded-full transition-colors"><span class="material-symbols-outlined">analytics</span></button>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-lg font-bold hover:shadow-[0_0_20px_rgba(59,132,246,0.4)] transition-all duration-200 scale-102">Deploy</button>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Suppressed for Support Page focus but maintaining brand presence via Top Bar) -->
+<main class="pt-24 pb-section-gap px-gutter max-w-container-max mx-auto">
+<!-- Hero Section -->
+<section class="flex flex-col items-center text-center mb-section-gap pt-12 relative">
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/10 blur-[120px] rounded-full -z-10"></div>
+<h1 class="font-display-xl text-display-xl mb-stack-md text-white">How can we help?</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-stack-lg">
+                Search our comprehensive library of tutorials, API references, and troubleshooting guides for the SachDeploy ecosystem.
+            </p>
+<!-- Hero Search -->
+<div class="w-full max-w-3xl glass-card inner-glow rounded-2xl flex items-center p-2 border-white/10">
+<span class="material-symbols-outlined text-on-surface-variant mx-4 text-3xl">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-body-lg py-4 text-on-surface placeholder:text-on-surface-variant/50" placeholder="Type your question here (e.g., 'How to configure custom domains?')" type="text"/>
+<button class="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold glow-button transition-all mr-1">Search</button>
+</div>
+</section>
+<!-- Category Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-6 gap-stack-md mb-section-gap">
+<div class="md:col-span-3 glass-card rounded-3xl p-stack-lg flex flex-col justify-between group">
+<div>
+<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-stack-md group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+<h3 class="font-title-md text-title-md mb-stack-sm">Getting Started</h3>
+<p class="text-on-surface-variant">New to SachDeploy? Learn the core concepts and deploy your first project in minutes.</p>
+</div>
+<div class="mt-stack-lg flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">Quickstart Guide</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">Architecture</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">CLI Tool</span>
+</div>
+</div>
+<div class="md:col-span-3 glass-card rounded-3xl p-stack-lg flex flex-col justify-between group">
+<div>
+<div class="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-stack-md group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-secondary text-4xl" style="font-variation-settings: 'FILL' 1;">dynamic_feed</span>
+</div>
+<h3 class="font-title-md text-title-md mb-stack-sm">Deployments</h3>
+<p class="text-on-surface-variant">Master automated workflows, environment variables, and branch-based deployment strategies.</p>
+</div>
+<div class="mt-stack-lg flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">CI/CD Hooks</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">Env Vars</span>
+<span class="px-3 py-1 bg-white/5 rounded-full text-label-sm border border-white/5">Rollbacks</span>
+</div>
+</div>
+<div class="md:col-span-2 glass-card rounded-3xl p-stack-lg group">
+<div class="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center mb-stack-sm group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-tertiary text-2xl">layers</span>
+</div>
+<h3 class="font-title-md text-title-md mb-stack-sm">Docker</h3>
+<p class="text-label-sm text-on-surface-variant">Optimizing images and container networking.</p>
+</div>
+<div class="md:col-span-2 glass-card rounded-3xl p-stack-lg group">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-stack-sm group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-primary text-2xl">api</span>
+</div>
+<h3 class="font-title-md text-title-md mb-stack-sm">API</h3>
+<p class="text-label-sm text-on-surface-variant">Comprehensive documentation for the Core API.</p>
+</div>
+<div class="md:col-span-2 glass-card rounded-3xl p-stack-lg group">
+<div class="w-12 h-12 rounded-xl bg-error/10 flex items-center justify-center mb-stack-sm group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-error text-2xl">payments</span>
+</div>
+<h3 class="font-title-md text-title-md mb-stack-sm">Billing</h3>
+<p class="text-label-sm text-on-surface-variant">Manage subscriptions, invoices, and credits.</p>
+</div>
+</section>
+<!-- Featured How-To Section -->
+<section class="mb-section-gap">
+<div class="flex justify-between items-end mb-stack-lg">
+<div>
+<h2 class="font-headline-lg text-headline-lg mb-2">Featured Guides</h2>
+<p class="text-on-surface-variant">Step-by-step solutions for common developer tasks.</p>
+</div>
+<button class="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
+                    View all guides <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="glass-card rounded-2xl overflow-hidden group">
+<div class="h-48 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A high-tech digital illustration of server clusters interconnected with neon blue glowing lines against a dark obsidian background. The visual style is ultra-modern and minimalist, emphasizing glass-like surfaces and deep depth. Soft ambient light from the nodes illuminates the scene in a premium developer-focused aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7wzaUsF4dligMOcEWYoK9mNoSZXNifrUtloTMzUWyaN_4gDx_ZimfJltQlQ6qp8mknqLDHjv18yuUb5e4R-vJLf_Bu5_sXGfS6RDMeXKQTarRVGYHIaDQVMo9Htn3ZevloVrip9VYlRzHj1kSBPC54J4xITZMDby_oZxxmfupSaJqHRjZzSlwORULOzKVCa-yYy1t6MC44MFkD2vYyGWvmW7tr_7ZSavXIaJEhd4F-uobjvFoQcSrHg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<span class="absolute bottom-4 left-4 px-3 py-1 bg-primary/20 backdrop-blur-md rounded-full text-primary font-bold text-[12px] border border-primary/30 uppercase tracking-widest">Tutorial</span>
+</div>
+<div class="p-stack-md">
+<h4 class="font-title-md text-title-md mb-stack-sm">Serverless Auto-scaling</h4>
+<p class="text-body-md text-on-surface-variant line-clamp-2 mb-stack-md">Configuring automatic scale-up and scale-down triggers based on CPU utilization and traffic spikes.</p>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full border border-white/10" data-alt="A professional close-up studio portrait of a senior cloud engineer with a friendly expression. The lighting is soft and cinematic, with a clean, dark-themed office background with subtle blue accents. The style matches a premium tech company's employee spotlight photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDt7chFMLLtzcaa2t34r_oRyKB91CNYL9FliCMdNFnDx2QndhWGomLDc9rChJUMv63TVQr3EZZSU0CIkuvpxY878zXGpA0DY_HBSemLGMccZD_lQox-WTGM5lQsaOZzbYgpYTCIV-8lqurYIjRbzN5v09fj61FaTPnvj8wvL1X4THbYyXRwAS4KUKN-Dg6GJ4rs29dJMokYVHDHHDyivn8I71CIqAfxzhOIMNxUm1tLI0OHrPUPrncooQ"/>
+<span class="text-label-sm text-on-surface-variant">by Elena Rodriguez</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card rounded-2xl overflow-hidden group">
+<div class="h-48 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="An abstract visualization of secure data encryption featuring a floating translucent padlock surrounded by holographic data streams and geometric code blocks. The color palette is deep blacks and electric purples with high-contrast glowing edges. The atmosphere is sophisticated and highlights technical mastery." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEf-7GjywTDlr5UvPDkTWDYysDT9e2Yt9sSkyhvW-gdRHuStl067s2EgfbPCKIBYAY9sIcClpkc2w2gmMx72K4iZFycGEV0ksjhAtbowEhKQ2JqAjMfHwSjkgSi1pTgUKHcYr25uHB0pi-oZmtn7-42TS2VOFns-MVc0wperGt7aloW57lAbWUnYkyKynqIFUCsI4tPy05KsdpnUYcLojNJ1UAOrunR-XEv9nMQWEw5J1Uc6w6857wPw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<span class="absolute bottom-4 left-4 px-3 py-1 bg-tertiary/20 backdrop-blur-md rounded-full text-tertiary font-bold text-[12px] border border-tertiary/30 uppercase tracking-widest">Security</span>
+</div>
+<div class="p-stack-md">
+<h4 class="font-title-md text-title-md mb-stack-sm">SSL Certificate Rotation</h4>
+<p class="text-body-md text-on-surface-variant line-clamp-2 mb-stack-md">Implementing automated Zero-Downtime SSL renewals using SachDeploy's internal certificate manager.</p>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full border border-white/10" data-alt="A professional portrait of a tech expert looking confidently at the camera, wearing a minimalist black turtleneck. The background is a soft-focus modern server room with subtle blinking lights in cool blue and white tones. High-fidelity photography for a developer-first luxury platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqFMxwKPNLFfJ_XJc46ptmE7UaxHvkerqiEGd-yYTA05Mq413EZ8O9Sz_Dqhp7TofwCn62HTruuNDt_X-rbe8EMxBMqNI0RefJSELjiLWsKf91tEAuYm3Lb1gZFLtUdJdwMVtUn4PW_DO2nKuzN5PAvyIA_GG29Tl9nLQy189kpTN6_EAzfnisBGnpAtY3H5_4F2l7_8HoW6hihRepVl07TKfj_-Y7RA_2bbIMOy65eCHhwh1F9aj8Ig"/>
+<span class="text-label-sm text-on-surface-variant">by Marcus Chen</span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-card rounded-2xl overflow-hidden group">
+<div class="h-48 relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A clean, minimalist 3D rendering of a database icon made of glowing white glass, floating above a reflective dark surface. Digital data bits orbit the structure like planets. The lighting is soft and diffused, creating a serene, reliable, and premium technical feel in a obsidian and blue palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz8hH0VpCWjdHDjai7uvCNqOUFC-ALnk_0jhHsFXgwdZdiWFnsUNtuDYZw9Hz7vtWiM1tpoZERNmngcvWDIx0mo02v0TferMtMkQkAyYLW8xwqsDRqLGIGz61QuOe2TZVX1n09RQ16tfxg_eUu8q0bDxN-FH1KMnSrHZEjGvfN28vtIYp_eR4XhHy3um6srXMxN0ZiXVossA8nNMHZpNnDBchbE6HgbJVOu42hOvNvk3t-Cu6MKEsC_g"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<span class="absolute bottom-4 left-4 px-3 py-1 bg-secondary/20 backdrop-blur-md rounded-full text-secondary font-bold text-[12px] border border-secondary/30 uppercase tracking-widest">Database</span>
+</div>
+<div class="p-stack-md">
+<h4 class="font-title-md text-title-md mb-stack-sm">PostgreSQL Cluster setup</h4>
+<p class="text-body-md text-on-surface-variant line-clamp-2 mb-stack-md">Step-by-step guide to deploying a high-availability Postgres cluster with read-replicas in different regions.</p>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full border border-white/10" data-alt="A high-quality portrait of a female developer with glasses, smiling warmly. The setting is a minimalist, modern tech workspace with large windows overlooking a city at dusk. The palette is muted with deep obsidian shadows and soft blue ambient lighting to match a premium UI design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyEoZQQSzLtfnkVtIGIQ1RpUVX7xFKFr10Ke4SCRcaxNB9r6Y7KIt3JZ2o98uZQmNcUibH0B8CJSCL450rIEwWqiVlazR0LS7XVJs5gMljTdpJxwHbTMD_BRCG7uFVu0h-kPTBquLGXhholrzuqT63ugCgmqGnC4L0NxYEygGshVfRLi-OSuEqlDLM0FQ5lXXRf2XtWgXVzg2Hu4nCBxnp99aLEt0HSzxJ5Mj9bN4DYIXDFgqVmj9enw"/>
+<span class="text-label-sm text-on-surface-variant">by Sarah Jenkins</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Contact Support Form Section -->
+<section class="glass-card rounded-[40px] p-stack-lg md:p-stack-lg flex flex-col md:flex-row gap-stack-lg items-center border-white/5">
+<div class="flex-1">
+<h2 class="font-headline-lg text-headline-lg mb-stack-sm">Still can't find an answer?</h2>
+<p class="text-body-lg text-on-surface-variant mb-stack-lg max-w-lg">
+                    Our engineering team is available 24/7 for Enterprise customers. For other tiers, we usually respond within 4 hours.
+                </p>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">mail</span>
+</div>
+<div>
+<p class="font-bold text-white">Email Support</p>
+<p class="text-label-sm text-on-surface-variant">support@sachdeploy.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">forum</span>
+</div>
+<div>
+<p class="font-bold text-white">Community Forum</p>
+<p class="text-label-sm text-on-surface-variant">Join 20k+ developers</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-1 w-full max-w-lg">
+<form class="space-y-4 bg-white/5 p-stack-md rounded-3xl border border-white/10">
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-1 ml-1">Subject</label>
+<input class="w-full bg-surface-container-low border-white/10 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 text-on-surface transition-all" placeholder="I have an issue with..." type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-1 ml-1">Product Area</label>
+<select class="w-full bg-surface-container-low border-white/10 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 text-on-surface">
+<option>Select Area</option>
+<option>Deployment</option>
+<option>Billing</option>
+<option>API / CLI</option>
+</select>
+</div>
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-1 ml-1">Severity</label>
+<select class="w-full bg-surface-container-low border-white/10 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 text-on-surface">
+<option>Normal</option>
+<option>High</option>
+<option>Critical (P1)</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-label-sm text-on-surface-variant mb-1 ml-1">Message</label>
+<textarea class="w-full bg-surface-container-low border-white/10 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 text-on-surface" placeholder="Describe your problem in detail..." rows="4"></textarea>
+</div>
+<button class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold glow-button transition-all flex items-center justify-center gap-2" type="submit">
+                        Send Message <span class="material-symbols-outlined">send</span>
+</button>
+</form>
+</div>
+</section>
+</main>
+<!-- AI Assistant Floating Bubble -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="w-16 h-16 bg-primary text-on-primary rounded-full shadow-[0_0_40px_rgba(59,132,246,0.6)] flex items-center justify-center hover:scale-110 transition-all duration-300 group" id="chat-toggle">
+<span class="material-symbols-outlined text-3xl group-hover:rotate-12 transition-transform" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+<!-- Chat Popup (Hidden initially) -->
+<div class="hidden absolute bottom-20 right-0 w-96 glass-card rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" id="chat-popup">
+<div class="bg-primary-container p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-on-primary-container">smart_toy</span>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-primary-container rounded-full animate-pulse"></span>
+</div>
+<div>
+<p class="font-bold text-on-primary-container text-label-sm">SachAI Assistant</p>
+<p class="text-[12px] text-on-primary-container/80">Always active</p>
+</div>
+</div>
+<button class="text-on-primary-container opacity-60 hover:opacity-100"><span class="material-symbols-outlined">close</span></button>
+</div>
+<div class="h-80 p-4 space-y-4 overflow-y-auto bg-surface-container-lowest">
+<div class="flex gap-2">
+<div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-[16px]">smart_toy</span></div>
+<div class="bg-surface-container-high rounded-2xl rounded-tl-none p-3 text-label-sm max-w-[80%]">
+                        Hello! I'm your deployment AI. Need help with a config file or troubleshooting a build?
+                    </div>
+</div>
+<div class="flex gap-2 flex-row-reverse">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-[16px] text-primary">person</span></div>
+<div class="bg-primary/10 text-primary-fixed rounded-2xl rounded-tr-none p-3 text-label-sm max-w-[80%]">
+                        How do I connect my GitHub repo?
+                    </div>
+</div>
+<div class="flex gap-2">
+<div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-[16px]">smart_toy</span></div>
+<div class="bg-surface-container-high rounded-2xl rounded-tl-none p-3 text-label-sm max-w-[80%]">
+                        Easy! Go to Dashboard > New Project > Import from Git. You can also use our CLI: <code class="bg-black/50 px-1 rounded text-primary">sach import repo-name</code>
+</div>
+</div>
+</div>
+<div class="p-4 bg-surface-container border-t border-white/5 flex gap-2">
+<input class="flex-1 bg-black/30 border-none focus:ring-0 rounded-xl text-label-sm py-2" placeholder="Ask anything..." type="text"/>
+<button class="bg-primary text-on-primary p-2 rounded-xl"><span class="material-symbols-outlined">send</span></button>
+</div>
+</div>
+</div>
+<!-- Footer Area -->
+<footer class="border-t border-white/5 bg-surface-container-low py-12 px-gutter">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex flex-col items-center md:items-start">
+<span class="font-headline-lg text-title-md font-bold text-on-surface mb-2">SachDeploy</span>
+<p class="text-label-sm text-on-surface-variant">© 2024 SachDeploy Systems Inc.</p>
+</div>
+<div class="flex gap-12">
+<div class="flex flex-col gap-2">
+<p class="text-label-sm font-bold text-white uppercase tracking-wider">Resources</p>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Documentation</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">API Reference</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Status Page</a>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-label-sm font-bold text-white uppercase tracking-wider">Company</p>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">About</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Terms</a>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"><span class="material-symbols-outlined text-[20px]">language</span></button>
+<button class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"><span class="material-symbols-outlined text-[20px]">terminal</span></button>
+</div>
+</div>
+</footer>
+<script>
+        // Simple micro-interaction for the chat bubble
+        const toggle = document.getElementById('chat-toggle');
+        const popup = document.getElementById('chat-popup');
+        let isOpen = false;
+
+        toggle.addEventListener('click', () => {
+            isOpen = !isOpen;
+            if (isOpen) {
+                popup.classList.remove('hidden');
+                popup.classList.add('flex', 'flex-col');
+            } else {
+                popup.classList.add('hidden');
+                popup.classList.remove('flex', 'flex-col');
+            }
+        });
+
+        // Search Bar Focus Effect
+        const searchInput = document.querySelector('input[placeholder*="documentation"]');
+        searchInput?.parentElement?.addEventListener('click', () => searchInput.focus());
+
+        // Close chat on escape
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isOpen) {
+                isOpen = false;
+                popup.classList.add('hidden');
+            }
+        });
+    </script>
+</body></html>
