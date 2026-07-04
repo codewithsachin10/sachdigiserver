@@ -40,3 +40,8 @@ from backend.system.control import (
     reboot_server,
     shutdown_server
 )
+from backend.system.services import list_system_services, control_service
+from backend.system.cron import list_cron_jobs, toggle_cron_job, trigger_cron_job
+from backend.system.security_audit import get_security_audit
+from backend.system.logs_viewer import get_system_logs
+from backend.system.updates import get_system_updates, trigger_system_update

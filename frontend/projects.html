@@ -153,11 +153,7 @@
 <nav class="hidden md:flex gap-8 ml-8">
 <a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="/projects.html">Projects</a>
 <a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200 font-body-md text-body-md" href="/deployments.html">Deployments</a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" href="/marketplace.html">
-<span class="material-symbols-outlined">storefront</span>
-<span class="font-label-sm">Marketplace</span>
-</a>
-<a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200 font-body-md text-body-md" href="#">Analytics</a>
+<a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200 font-body-md text-body-md" href="/analytics.html">Analytics</a>
 <a class="text-on-surface-variant font-medium hover:bg-white/5 transition-colors duration-200 font-body-md text-body-md" href="/settings.html">Settings</a>
 </nav>
 </div>
@@ -175,44 +171,125 @@
 </div>
 </header>
 <!-- Side Navigation Shell -->
-<aside class="fixed left-0 top-0 h-full z-50 flex flex-col py-stack-md bg-surface/80 dark:bg-background/80 backdrop-blur-xl border-r border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)] w-64 hidden xl:flex">
-<div class="px-6 mb-8 flex items-center gap-3">
-<div class="w-8 h-8 bg-primary-container rounded flex items-center justify-center">
-<span class="material-symbols-outlined text-on-primary-container">rocket_launch</span>
-</div>
-<div>
-<h3 class="font-label-sm text-on-surface font-bold">Main Workspace</h3>
-<p class="text-[10px] text-on-surface-variant uppercase tracking-widest">Production Env</p>
-</div>
-</div>
-<nav class="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide">
-<div class="text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-widest px-2 py-2">General</div>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200 rounded-lg group" href="/">
-<span class="material-symbols-outlined text-sm">dashboard</span>
-<span class="font-label-sm">Dashboard</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary border-r-2 border-primary transition-all duration-200 rounded-lg" href="#">
-<span class="material-symbols-outlined text-sm">rocket_launch</span>
-<span class="font-label-sm">Projects</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200 rounded-lg" href="#">
-<span class="material-symbols-outlined text-sm">dynamic_feed</span>
-<span class="font-label-sm">Deployments</span>
-</a>
-<div class="text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-widest px-2 py-2 mt-4">Infrastructure</div>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200 rounded-lg" href="#">
-<span class="material-symbols-outlined text-sm">layers</span>
-<span class="font-label-sm">Containers</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200 rounded-lg" href="#">
-<span class="material-symbols-outlined text-sm">database</span>
-<span class="font-label-sm">Volumes</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200 rounded-lg" href="#">
-<span class="material-symbols-outlined text-sm">lan</span>
-<span class="font-label-sm">Networks</span>
-</a>
-</nav>
+<aside id="main-sidebar" class="fixed left-0 top-0 h-full z-50 flex flex-col py-6 bg-surface/95 dark:bg-background/95 backdrop-blur-2xl border-r border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] w-64 pt-6 transition-all duration-200">
+    <div class="px-6 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+            <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+        </div>
+        <div>
+            <h1 class="font-headline font-bold text-lg text-white tracking-tight leading-none">SachDeploy</h1>
+            <p class="text-[11px] text-gray-400 font-mono mt-1">Enterprise OS v2.0</p>
+        </div>
+    </div>
+
+    <nav id="sidebar-nav" class="flex-1 px-3 space-y-5 overflow-y-auto custom-scrollbar">
+        <!-- Section 1: Cloud Platform -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">Cloud Platform</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/">
+                <span class="material-symbols-outlined text-lg">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/projects.html">
+                <span class="material-symbols-outlined text-lg">rocket_launch</span>
+                <span>Projects</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/deployments.html">
+                <span class="material-symbols-outlined text-lg">dynamic_feed</span>
+                <span>Deployments</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/marketplace.html">
+                <span class="material-symbols-outlined text-lg">storefront</span>
+                <span>Marketplace</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/containers.html">
+                <span class="material-symbols-outlined text-lg">layers</span>
+                <span>Containers</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/volumes.html">
+                <span class="material-symbols-outlined text-lg">hard_drive</span>
+                <span>Volumes</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/networks.html">
+                <span class="material-symbols-outlined text-lg">lan</span>
+                <span>Networks</span>
+            </a>
+        </div>
+        
+        <!-- Section 2: System OS & Hardware -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">System OS & Hardware</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/monitoring.html">
+                <span class="material-symbols-outlined text-lg">monitoring</span>
+                <span>Live Monitoring</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/terminal.html">
+                <span class="material-symbols-outlined text-lg">terminal</span>
+                <span>Integrated Terminal</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/services.html">
+                <span class="material-symbols-outlined text-lg">settings_applications</span>
+                <span>Systemd Services</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/cron.html">
+                <span class="material-symbols-outlined text-lg">schedule</span>
+                <span>Cron Scheduler</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/hardware.html">
+                <span class="material-symbols-outlined text-lg">memory</span>
+                <span>OS & Hardware</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/network.html">
+                <span class="material-symbols-outlined text-lg">router</span>
+                <span>Network & VPN</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/updates.html">
+                <span class="material-symbols-outlined text-lg">system_update</span>
+                <span>OS Updates</span>
+            </a>
+        </div>
+
+        <!-- Section 3: Security & Team -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">Security & Team</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/security.html">
+                <span class="material-symbols-outlined text-lg">security</span>
+                <span>Security Audit</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/logs.html">
+                <span class="material-symbols-outlined text-lg">plagiarism</span>
+                <span>System Logs</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/analytics.html">
+                <span class="material-symbols-outlined text-lg">insights</span>
+                <span>Analytics</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/team.html">
+                <span class="material-symbols-outlined text-lg">group</span>
+                <span>Team Users</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/tokens.html">
+                <span class="material-symbols-outlined text-lg">key</span>
+                <span>API Tokens</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/audit.html">
+                <span class="material-symbols-outlined text-lg">history_edu</span>
+                <span>Audit Logs</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="px-4 mt-auto pt-4 space-y-1 border-t border-white/10">
+        <a class="nav-link flex items-center gap-3 px-3.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/support.html">
+            <span class="material-symbols-outlined text-lg">help</span>
+            <span>Support</span>
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/settings.html">
+            <span class="material-symbols-outlined text-lg">settings</span>
+            <span>Settings</span>
+        </a>
+    </div>
+</aside>
 <div class="px-4 mt-auto">
 <button class="w-full bg-surface-container-high hover:bg-surface-container-highest transition-colors py-2 px-4 rounded-lg flex items-center justify-center gap-2 mb-4 border border-white/5">
 <span class="material-symbols-outlined text-sm">add</span>
@@ -523,7 +600,7 @@
 <span class="material-symbols-outlined">dynamic_feed</span>
 <span class="text-[10px]">Deploy</span>
 </a>
-<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="/analytics.html">
 <span class="material-symbols-outlined">analytics</span>
 <span class="text-[10px]">Stats</span>
 </a>

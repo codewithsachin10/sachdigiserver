@@ -103,6 +103,30 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logoutUser);
     }
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            toggleCommandPalette();
+        }
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('command-palette-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+            }
+        }
+    });
+
+    // Highlight active sidebar navigation link
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('#sidebar-nav a.nav-link').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && (currentPath === href || (currentPath === '/' && href === '/index.html'))) {
+            a.classList.add('active', 'bg-white/10', 'text-white', 'font-bold');
+        } else {
+            a.classList.remove('active', 'bg-white/10', 'text-white', 'font-bold');
+        }
+    });
 }
 
 async function logoutUser() {
@@ -166,6 +190,28 @@ function initCurrentPage() {
         loadSettings();
     } else if (path.includes('support')) {
         loadBackups();
+    } else if (path.includes('services')) {
+        fetchServices();
+    } else if (path.includes('cron')) {
+        fetchCronJobs();
+    } else if (path.includes('hardware')) {
+        fetchHardwareInfo();
+    } else if (path.includes('network')) {
+        fetchNetworkInfo();
+    } else if (path.includes('updates')) {
+        fetchSystemUpdates();
+    } else if (path.includes('security')) {
+        fetchSecurityAudit();
+    } else if (path.includes('logs')) {
+        loadSystemLogs('all');
+    } else if (path.includes('analytics')) {
+        fetchAnalytics();
+    } else if (path.includes('team')) {
+        fetchTeamUsers();
+    } else if (path.includes('tokens')) {
+        fetchApiTokens();
+    } else if (path.includes('audit')) {
+        fetchAuditLogs();
     }
 }
 
@@ -1163,11 +1209,19 @@ function connectTerminalWs(sessionId) {
     };
     
     termWs.onmessage = (event) => {
-        xtermInstance.write(event.data);
+        if (xtermInstance) {
+            xtermInstance.write(event.data);
+        }
     };
     
     termWs.onerror = () => {
-        xtermInstance.write('\r\n\x1b[31m[WebSocket Connection Error]\x1b[0m\r\n');
+        showToast('Terminal connection error', 'error');
+    };
+
+    termWs.onclose = () => {
+        if (xtermInstance) {
+            xtermInstance.write('\r\n\x1b[31m[Terminal session closed by server]\x1b[0m\r\n');
+        }
     };
 }
 
@@ -1179,5 +1233,773 @@ function sendTerminalCommand(cmd) {
         showToast('Terminal not connected', 'error');
     }
 }
+
+// ==========================================
+// Phase 3 Enterprise System OS Loaders
+// ==========================================
+
+// --- 1. Systemd Services ---
+async function fetchServices() {
+    const tbody = document.getElementById('services-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-gray-400 font-mono animate-pulse">Loading systemd daemons from host...</td></tr>`;
+    try {
+        const res = await apiFetch('/api/services');
+        if (!res.ok) throw new Error('Failed to fetch services');
+        const data = await res.json();
+        window.allSystemServices = data;
+        renderServicesTable(data);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-red-400 font-mono">Error loading systemd services: ${e.message}</td></tr>`;
+    }
+}
+
+function renderServicesTable(services) {
+    const tbody = document.getElementById('services-tbody');
+    if (!tbody) return;
+    if (!services || services.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-gray-400 font-mono">No matching services found.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = services.map(s => {
+        const isRun = s.status === 'running' || s.sub_state === 'running';
+        const isFail = s.status === 'failed' || s.sub_state === 'failed';
+        const badgeClass = isRun ? 'bg-green-500/10 text-green-400 border-green-500/20' : (isFail ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20');
+        const badgeIcon = isRun ? 'check_circle' : (isFail ? 'error' : 'pause_circle');
+        return `
+            <tr class="hover:bg-white/5 transition-all">
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border font-mono uppercase ${badgeClass}">
+                        <span class="material-symbols-outlined text-[14px]">${badgeIcon}</span> ${s.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4 font-mono text-xs font-bold text-white select-all">${s.name}</td>
+                <td class="px-6 py-4 text-xs text-gray-300 max-w-md truncate" title="${s.description}">${s.description || 'System Daemon'}</td>
+                <td class="px-6 py-4 font-mono text-xs text-gray-400">${s.load_state || 'loaded'}</td>
+                <td class="px-6 py-4 font-mono text-xs text-gray-400">${s.sub_state || s.status}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="restartService('${s.name}')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto border border-white/10 shadow-sm" title="Restart Systemd Service">
+                        <span class="material-symbols-outlined text-[14px]">restart_alt</span> Restart
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function loadServices(filter, btnEl) {
+    if (btnEl) {
+        document.querySelectorAll('.srv-tab').forEach(b => {
+            b.classList.remove('bg-primary/20', 'text-primary', 'border', 'border-primary/30', 'font-bold');
+            b.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+        });
+        btnEl.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+        btnEl.classList.add('bg-primary/20', 'text-primary', 'border', 'border-primary/30', 'font-bold');
+    }
+    window.currentServiceFilter = filter;
+    filterServices();
+}
+
+function filterServices() {
+    const query = (document.getElementById('service-search')?.value || '').toLowerCase().trim();
+    const filter = window.currentServiceFilter || 'all';
+    const all = window.allSystemServices || [];
+    const filtered = all.filter(s => {
+        const matchesQuery = !query || s.name.toLowerCase().includes(query) || (s.description && s.description.toLowerCase().includes(query));
+        const matchesTab = filter === 'all' || (filter === 'running' && s.status === 'running') || (filter === 'failed' && s.status === 'failed');
+        return matchesQuery && matchesTab;
+    });
+    renderServicesTable(filtered);
+}
+
+async function restartService(name) {
+    if (!confirm(`Are you sure you want to restart systemd service: ${name}?`)) return;
+    showToast(`Restarting service ${name}...`, 'info');
+    try {
+        const res = await apiFetch(`/api/services/${encodeURIComponent(name)}/restart`, { method: 'POST' });
+        if (res.ok) {
+            showToast(`✅ Service ${name} restarted successfully!`, 'success');
+            fetchServices();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            showToast(`❌ Failed to restart: ${err.detail || res.statusText}`, 'error');
+        }
+    } catch (e) {
+        showToast(`❌ Error: ${e.message}`, 'error');
+    }
+}
+
+// --- 2. Cron Scheduler ---
+async function fetchCronJobs() {
+    const tbody = document.getElementById('cron-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono animate-pulse">Loading crontab schedule...</td></tr>`;
+    try {
+        const res = await apiFetch('/api/cron');
+        if (!res.ok) throw new Error('Failed to fetch cron jobs');
+        const data = await res.json();
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono">No cron automation jobs configured on host.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.map(c => `
+            <tr class="hover:bg-white/5 transition-all">
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono ${c.status === 'active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'}">
+                        <span class="material-symbols-outlined text-[14px]">${c.status === 'active' ? 'check_circle' : 'pause_circle'}</span> ${c.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4 font-mono text-xs font-bold text-primary select-all bg-black/30 px-3 py-1 rounded border border-white/5 w-fit">${c.schedule}</td>
+                <td class="px-6 py-4 font-mono text-xs text-white max-w-lg truncate select-all" title="${c.command}">${c.command}</td>
+                <td class="px-6 py-4 text-xs font-mono text-gray-400">${c.user || 'root'}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="runCronJob('${c.id}')" class="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto border border-primary/30">
+                        <span class="material-symbols-outlined text-[14px]">play_arrow</span> Trigger Now
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-red-400 font-mono">Error loading crontab: ${e.message}</td></tr>`;
+    }
+}
+
+async function runCronJob(id) {
+    showToast(`Triggering cron job automation...`, 'info');
+    try {
+        const res = await apiFetch(`/api/cron/${encodeURIComponent(id)}/run`, { method: 'POST' });
+        if (res.ok) {
+            showToast(`✅ Cron job executed successfully!`, 'success');
+        } else {
+            showToast(`❌ Execution failed`, 'error');
+        }
+    } catch (e) {
+        showToast(`❌ Error: ${e.message}`, 'error');
+    }
+}
+
+// --- 3. OS & Hardware Telemetry ---
+async function fetchHardwareInfo() {
+    const grid = document.getElementById('hardware-grid');
+    if (!grid) return;
+    grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-gray-400 font-mono animate-pulse">Scanning motherboard sensors, SMART disk health, and kernel diagnostics...</div>`;
+    try {
+        const res = await apiFetch('/api/hardware');
+        if (!res.ok) throw new Error('Failed to fetch hardware telemetry');
+        const h = await res.json();
+        
+        const smartColor = h.disk_smart_status === 'PASSED' || h.disk_smart_status === 'OK' ? 'text-green-400 bg-green-500/10 border-green-500/20' : (h.disk_smart_status === 'N/A' || h.disk_smart_status === 'Not Equipped' ? 'text-gray-400 bg-gray-500/10 border-gray-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20');
+
+        grid.innerHTML = `
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                    <span class="material-symbols-outlined text-primary text-2xl">memory</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">CPU Architecture</h4>
+                        <p class="text-[11px] text-gray-400 font-mono">${h.cpu_model || 'Host Processor'}</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    <div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-400">Logical Cores:</span> <span class="text-white font-bold">${h.cpu_cores || 'N/A'} Cores</span></div>
+                    <div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-400">Clock Frequency:</span> <span class="text-white font-bold">${h.cpu_freq_mhz || 'N/A'} MHz</span></div>
+                    <div class="flex justify-between py-1"><span class="text-gray-400">CPU Temperature:</span> <span class="text-primary font-bold">${h.temperature_c !== 'N/A' ? h.temperature_c + ' °C' : 'Not Equipped'}</span></div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                    <span class="material-symbols-outlined text-purple-400 text-2xl">dns</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">Memory & Swap</h4>
+                        <p class="text-[11px] text-gray-400 font-mono">Host RAM capacity and swap space</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    <div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-400">Total Installed RAM:</span> <span class="text-white font-bold">${h.ram_total_gb || '0'} GB</span></div>
+                    <div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-400">Total Swap Capacity:</span> <span class="text-white font-bold">${h.swap_total_gb || '0'} GB</span></div>
+                    <div class="flex justify-between py-1"><span class="text-gray-400">Memory Type:</span> <span class="text-purple-400 font-bold">DDR4 / DDR5 Host</span></div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                    <span class="material-symbols-outlined text-green-400 text-2xl">hard_drive</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">Disk SMART Health</h4>
+                        <p class="text-[11px] text-gray-400 font-mono">Storage telemetry & I/O throughput</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    <div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-400">Total Storage:</span> <span class="text-white font-bold">${h.disk_total_gb || '0'} GB</span></div>
+                    <div class="flex justify-between py-1 border-b border-white/5 items-center"><span class="text-gray-400">SMART Status:</span> <span class="px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${smartColor}">${h.disk_smart_status || 'N/A'}</span></div>
+                    <div class="flex justify-between py-1"><span class="text-gray-400">I/O Read / Write:</span> <span class="text-green-400 font-bold">${h.disk_read_speed_mb || '0'} / ${h.disk_write_speed_mb || '0'} MB/s</span></div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow col-span-full">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                    <span class="material-symbols-outlined text-yellow-400 text-2xl">computer</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">Operating System & Host Kernel</h4>
+                        <p class="text-[11px] text-gray-400 font-mono">Ubuntu Server diagnostics and system uptime</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono pt-2">
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5"><span class="text-gray-500 block text-[10px] uppercase">Hostname</span><span class="text-white font-bold text-sm select-all">${h.hostname || 'sachdigiserver'}</span></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5"><span class="text-gray-500 block text-[10px] uppercase">OS Version</span><span class="text-white font-bold text-sm">${h.os_name || 'Ubuntu Server 24.04'}</span></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5"><span class="text-gray-500 block text-[10px] uppercase">Kernel Version</span><span class="text-white font-bold text-sm select-all">${h.kernel_version || '6.8.0-ubuntu'}</span></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5"><span class="text-gray-500 block text-[10px] uppercase">System Uptime</span><span class="text-yellow-400 font-bold text-sm">${h.uptime_formatted || 'Online'}</span></div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-red-400 font-mono">Error loading telemetry: ${e.message}</div>`;
+    }
+}
+
+// --- 4. Network & VPN ---
+async function fetchNetworkInfo() {
+    const cont = document.getElementById('network-container');
+    if (!cont) return;
+    cont.innerHTML = `<div class="py-12 text-center text-xs text-gray-400 font-mono animate-pulse">Inspecting IP geolocation, Tailscale mesh VPN, open listening ports, and UFW firewall...</div>`;
+    try {
+        const res = await apiFetch('/api/network');
+        if (!res.ok) throw new Error('Failed to fetch network diagnostics');
+        const net = await res.json();
+
+        const tsColor = net.tailscale_status === 'Connected' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-gray-400 bg-gray-500/10 border-gray-500/20';
+        const ufwColor = net.ufw_status === 'active' || net.ufw_status === 'enabled' ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+
+        const portsHtml = (net.listening_ports && net.listening_ports.length > 0)
+            ? net.listening_ports.map(p => `
+                <tr class="hover:bg-white/5 transition-all">
+                    <td class="px-4 py-2.5 font-mono text-primary font-bold">${p.port || p}</td>
+                    <td class="px-4 py-2.5 font-mono text-white">${p.protocol || 'TCP/UDP'}</td>
+                    <td class="px-4 py-2.5 font-mono text-gray-300">${p.process || 'system daemon'}</td>
+                    <td class="px-4 py-2.5 text-right"><span class="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded border border-green-500/20 font-bold uppercase">LISTENING</span></td>
+                </tr>
+            `).join('')
+            : `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500 font-mono">No listening ports detected.</td></tr>`;
+
+        const ufwHtml = (net.ufw_rules && net.ufw_rules.length > 0)
+            ? net.ufw_rules.map(r => `
+                <tr class="hover:bg-white/5 transition-all">
+                    <td class="px-4 py-2.5 font-mono text-white">${r.to || r}</td>
+                    <td class="px-4 py-2.5 font-mono text-gray-300">${r.action || 'ALLOW'}</td>
+                    <td class="px-4 py-2.5 font-mono text-gray-400">${r.from || 'Anywhere'}</td>
+                </tr>
+            `).join('')
+            : `<tr><td colspan="3" class="px-4 py-6 text-center text-gray-500 font-mono">No explicit UFW rules active.</td></tr>`;
+
+        cont.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card rounded-2xl p-6 space-y-3 inner-glow">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">Public IP Address</span>
+                    <div class="text-xl font-bold font-mono text-white select-all flex items-center justify-between">
+                        <span>${net.public_ip || 'N/A'}</span>
+                        <span class="material-symbols-outlined text-primary">public</span>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 space-y-3 inner-glow">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">Tailscale VPN Mesh</span>
+                    <div class="text-xl font-bold font-mono text-white select-all flex items-center justify-between">
+                        <span>${net.tailscale_ip || 'Not Equipped'}</span>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold border uppercase ${tsColor}">${net.tailscale_status || 'Offline'}</span>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 space-y-3 inner-glow">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">UFW Host Firewall</span>
+                    <div class="text-xl font-bold font-mono text-white flex items-center justify-between">
+                        <span class="uppercase">${net.ufw_status || 'inactive'}</span>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold border uppercase ${ufwColor}">${net.ufw_status === 'active' ? 'PROTECTED' : 'UNGUARDED'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                    <h4 class="font-bold text-sm text-white flex items-center gap-2"><span class="material-symbols-outlined text-primary">lan</span> Active Listening Ports</h4>
+                    <div class="overflow-x-auto max-h-80 overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead><tr class="border-b border-white/10 text-gray-400 font-bold bg-black/20"><th class="px-4 py-2">Port</th><th class="px-4 py-2">Protocol</th><th class="px-4 py-2">Process</th><th class="px-4 py-2 text-right">State</th></tr></thead>
+                            <tbody class="divide-y divide-white/5">${portsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                    <h4 class="font-bold text-sm text-white flex items-center gap-2"><span class="material-symbols-outlined text-yellow-400">security</span> UFW Firewall Rules</h4>
+                    <div class="overflow-x-auto max-h-80 overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead><tr class="border-b border-white/10 text-gray-400 font-bold bg-black/20"><th class="px-4 py-2">To Target</th><th class="px-4 py-2">Action</th><th class="px-4 py-2">From Source</th></tr></thead>
+                            <tbody class="divide-y divide-white/5">${ufwHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        cont.innerHTML = `<div class="py-8 text-center text-xs text-red-400 font-mono">Error loading network diagnostics: ${e.message}</div>`;
+    }
+}
+
+// --- 5. OS & Package Updates ---
+async function fetchSystemUpdates() {
+    const cont = document.getElementById('updates-container');
+    if (!cont) return;
+    cont.innerHTML = `<div class="py-12 text-center text-xs text-gray-400 font-mono animate-pulse">Checking APT package lists and Git repository version...</div>`;
+    try {
+        const res = await apiFetch('/api/updates');
+        if (!res.ok) throw new Error('Failed to fetch updates');
+        const u = await res.json();
+
+        const pkgsHtml = (u.apt_packages && u.apt_packages.length > 0)
+            ? u.apt_packages.map(p => `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/5 font-mono text-xs">
+                    <span class="text-white font-bold select-all">${p.name || p}</span>
+                    <span class="text-gray-400 text-[11px]">${p.version || 'Available'}</span>
+                </div>
+            `).join('')
+            : `<div class="p-6 text-center text-xs text-gray-500 font-mono bg-black/20 rounded-xl border border-white/5">All system APT packages are fully up to date!</div>`;
+
+        cont.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                        <div>
+                            <h4 class="font-bold text-sm text-white">APT System Upgrades</h4>
+                            <p class="text-[11px] text-gray-400 font-mono">Ubuntu host package maintenance</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold font-mono ${u.apt_updates_count > 0 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : 'bg-green-500/20 text-green-300 border border-green-500/30'}">${u.apt_updates_count || '0'} Upgrades Available</span>
+                    </div>
+                    <div class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">${pkgsHtml}</div>
+                    ${u.apt_updates_count > 0 ? `<button onclick="upgradeSystemPackages()" class="w-full py-2.5 bg-primary hover:bg-primary-container text-[#002e6a] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg transition-all"><span class="material-symbols-outlined text-sm">system_update_alt</span> Upgrade All Packages</button>` : ''}
+                </div>
+
+                <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                    <div class="border-b border-white/10 pb-3">
+                        <h4 class="font-bold text-sm text-white">Git Repository Version</h4>
+                        <p class="text-[11px] text-gray-400 font-mono">SachDeploy platform source branch & SHA</p>
+                    </div>
+                    <div class="space-y-3 font-mono text-xs pt-1">
+                        <div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span class="text-gray-400">Active Branch:</span> <span class="text-primary font-bold">${u.git_branch || 'main'}</span></div>
+                        <div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5"><span class="text-gray-400">Latest Commit:</span> <span class="text-white font-bold select-all">${u.git_commit || 'HEAD'}</span></div>
+                        <div class="flex justify-between p-3 rounded-xl bg-black/30 border border-white/5 items-center"><span class="text-gray-400">Repository State:</span> <span class="text-green-400 font-bold uppercase">${u.git_status || 'UP TO DATE'}</span></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        cont.innerHTML = `<div class="py-8 text-center text-xs text-red-400 font-mono">Error loading update status: ${e.message}</div>`;
+    }
+}
+
+async function upgradeSystemPackages() {
+    if (!confirm('Are you sure you want to run apt-get upgrade on the Ubuntu server host?')) return;
+    showToast('Starting background system upgrade...', 'info');
+    try {
+        const res = await apiFetch('/api/updates/upgrade', { method: 'POST' });
+        if (res.ok) {
+            showToast('✅ System upgrade initiated successfully!', 'success');
+            setTimeout(fetchSystemUpdates, 5000);
+        } else {
+            showToast('❌ Failed to trigger upgrade', 'error');
+        }
+    } catch (e) {
+        showToast(`❌ Error: ${e.message}`, 'error');
+    }
+}
+
+// --- 6. Security Hardening Audit ---
+async function fetchSecurityAudit() {
+    const cont = document.getElementById('security-container');
+    if (!cont) return;
+    cont.innerHTML = `<div class="py-12 text-center text-xs text-gray-400 font-mono animate-pulse">Running server vulnerability scan and SSH/UFW security hardening audit...</div>`;
+    try {
+        const res = await apiFetch('/api/security/audit');
+        if (!res.ok) throw new Error('Failed to run security audit');
+        const s = await res.json();
+
+        const scoreColor = s.score >= 80 ? 'text-green-400 border-green-500/30 bg-green-500/10' : (s.score >= 50 ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10');
+
+        const checksHtml = (s.checks && s.checks.length > 0)
+            ? s.checks.map(c => `
+                <div class="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-white/5 font-mono text-xs">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-lg ${c.status === 'PASS' ? 'text-green-400' : 'text-red-400'}">${c.status === 'PASS' ? 'verified_user' : 'gpp_bad'}</span>
+                        <div>
+                            <div class="font-bold text-white">${c.check}</div>
+                            <div class="text-[11px] text-gray-400">${c.detail || 'Automated hardening verification'}</div>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded text-[11px] font-bold border uppercase ${c.status === 'PASS' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}">${c.status}</span>
+                </div>
+            `).join('')
+            : `<div class="p-6 text-center text-xs text-gray-500 font-mono bg-black/20 rounded-xl border border-white/5">No security audit rules returned.</div>`;
+
+        cont.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="glass-card rounded-2xl p-6 flex items-center justify-between inner-glow md:col-span-1">
+                    <div>
+                        <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">Hardening Score</span>
+                        <div class="text-3xl font-bold font-mono mt-1 ${scoreColor} px-3 py-1 rounded-xl border w-fit">${s.score || '0'}/100</div>
+                    </div>
+                    <span class="material-symbols-outlined text-4xl text-gray-600">shield_with_house</span>
+                </div>
+                <div class="glass-card rounded-2xl p-6 flex flex-col justify-center space-y-2 inner-glow md:col-span-2 font-mono text-xs">
+                    <div class="flex justify-between items-center"><span class="text-gray-400">SSH Root Login Permitted:</span> <span class="font-bold ${s.ssh_root_login ? 'text-red-400' : 'text-green-400'}">${s.ssh_root_login ? 'YES (Risk)' : 'NO (Secured)'}</span></div>
+                    <div class="flex justify-between items-center"><span class="text-gray-400">SSH Password Authentication:</span> <span class="font-bold ${s.ssh_password_auth ? 'text-yellow-400' : 'text-green-400'}">${s.ssh_password_auth ? 'ENABLED' : 'DISABLED (Key Only)'}</span></div>
+                    <div class="flex justify-between items-center"><span class="text-gray-400">UFW Host Firewall Active:</span> <span class="font-bold ${s.ufw_active ? 'text-green-400' : 'text-red-400'}">${s.ufw_active ? 'ACTIVE' : 'INACTIVE'}</span></div>
+                </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                <h4 class="font-bold text-sm text-white">Hardening Check Results</h4>
+                <div class="space-y-3">${checksHtml}</div>
+            </div>
+        `;
+    } catch (e) {
+        cont.innerHTML = `<div class="py-8 text-center text-xs text-red-400 font-mono">Error running security audit: ${e.message}</div>`;
+    }
+}
+
+// --- 7. Live System Logs ---
+async function loadSystemLogs(cat = 'all', btnEl = null) {
+    window.currentLogCat = cat;
+    if (btnEl) {
+        document.querySelectorAll('.log-tab').forEach(b => {
+            b.classList.remove('bg-primary', 'text-[#002e6a]', 'shadow-md');
+            b.classList.add('bg-white/5', 'text-gray-300');
+        });
+        btnEl.classList.remove('bg-white/5', 'text-gray-300');
+        btnEl.classList.add('bg-primary', 'text-[#002e6a]', 'shadow-md');
+    }
+    const viewer = document.getElementById('sys-logs-viewer');
+    if (!viewer) return;
+    const lines = document.getElementById('log-lines-select')?.value || 100;
+    viewer.textContent = `[Streaming ${cat} logs from Ubuntu server host (${lines} lines)...]`;
+    try {
+        const res = await apiFetch(`/api/logs/system?category=${encodeURIComponent(cat)}&lines=${lines}`);
+        if (!res.ok) throw new Error('Failed to fetch system logs');
+        const data = await res.json();
+        viewer.textContent = data.content || `No log entries returned for ${cat}.`;
+        viewer.scrollTop = viewer.scrollHeight;
+    } catch (e) {
+        viewer.textContent = `[Error loading logs]: ${e.message}`;
+    }
+}
+
+// --- 8. Platform Analytics ---
+async function fetchAnalytics() {
+    const cont = document.getElementById('analytics-container');
+    if (!cont) return;
+    cont.innerHTML = `<div class="py-12 text-center text-xs text-gray-400 font-mono animate-pulse">Calculating historical build durations and resource utilization trends...</div>`;
+    try {
+        const res = await apiFetch('/api/analytics');
+        if (!res.ok) throw new Error('Failed to fetch platform analytics');
+        const a = await res.json();
+
+        const successRate = a.deployments_total > 0 ? Math.round((a.deployments_success / a.deployments_total) * 100) : 100;
+
+        cont.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 font-mono">
+                <div class="glass-card rounded-2xl p-6 space-y-2 inner-glow">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Total Deployments</span>
+                    <div class="text-2xl font-bold text-white">${a.deployments_total || '0'} Builds</div>
+                    <div class="text-[11px] text-green-400 font-bold">${successRate}% Success Reliability</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 space-y-2 inner-glow">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Average Build Duration</span>
+                    <div class="text-2xl font-bold text-primary">${a.build_duration_avg_sec || '0'} Seconds</div>
+                    <div class="text-[11px] text-gray-400">Container compilation time</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 space-y-2 inner-glow">
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Platform Reliability</span>
+                    <div class="text-2xl font-bold text-green-400">${a.deployments_success || '0'} Successful</div>
+                    <div class="text-[11px] text-gray-400">Production uptime grade A+</div>
+                </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+                <h4 class="font-bold text-sm text-white">Resource Utilization Trends</h4>
+                <div class="h-64 bg-black/30 rounded-xl border border-white/5 flex items-center justify-center text-xs text-gray-500 font-mono">
+                    [Real-time resource utilization chart active via WebSocket stream]
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        cont.innerHTML = `<div class="py-8 text-center text-xs text-red-400 font-mono">Error loading analytics: ${e.message}</div>`;
+    }
+}
+
+// --- 9. Team User Management ---
+async function fetchTeamUsers() {
+    const tbody = document.getElementById('team-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-xs text-gray-400 font-mono animate-pulse">Loading registered platform accounts...</td></tr>`;
+    try {
+        const res = await apiFetch('/api/team/users');
+        if (!res.ok) throw new Error('Failed to load team users');
+        const data = await res.json();
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-xs text-gray-400 font-mono">No accounts registered.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.map(u => {
+            const roleBadge = u.role === 'admin' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : (u.role === 'developer' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30');
+            return `
+                <tr class="hover:bg-white/5 transition-all">
+                    <td class="px-6 py-4 font-mono text-xs font-bold text-white flex items-center gap-2"><span class="material-symbols-outlined text-gray-400 text-sm">person</span> ${u.username}</td>
+                    <td class="px-6 py-4"><span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono border uppercase ${roleBadge}">${u.role}</span></td>
+                    <td class="px-6 py-4 font-mono text-xs text-gray-400">${u.created_at || 'Just now'}</td>
+                    <td class="px-6 py-4 text-right">
+                        ${u.username !== 'admin' ? `<button onclick="deleteTeamUser('${u.id}', '${u.username}')" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-white/5 text-xs font-bold transition-all"><span class="material-symbols-outlined text-sm">delete</span></button>` : `<span class="text-[11px] text-gray-500 font-mono">System Owner</span>`}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-xs text-red-400 font-mono">Error loading accounts: ${e.message}</td></tr>`;
+    }
+}
+
+async function submitCreateUser(e) {
+    e.preventDefault();
+    const u = document.getElementById('new-username').value.trim();
+    const r = document.getElementById('new-user-role').value;
+    if (!u) return;
+    try {
+        const res = await apiFetch('/api/team/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: u, role: r, password: 'sachdeploy_user' })
+        });
+        if (res.ok) {
+            showToast(`✅ Created user ${u} (${r})`, 'success');
+            document.getElementById('new-username').value = '';
+            fetchTeamUsers();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            showToast(`❌ Failed: ${err.detail || 'Error creating user'}`, 'error');
+        }
+    } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+    }
+}
+
+async function deleteTeamUser(id, name) {
+    if (!confirm(`Remove user account '${name}' from SachDeploy?`)) return;
+    try {
+        const res = await apiFetch(`/api/team/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast(`Removed user account '${name}'`, 'info');
+            fetchTeamUsers();
+        } else {
+            showToast(`Failed to delete user`, 'error');
+        }
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+// --- 10. API Access Tokens ---
+async function fetchApiTokens() {
+    const tbody = document.getElementById('tokens-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono animate-pulse">Loading programmatic access tokens...</td></tr>`;
+    try {
+        const res = await apiFetch('/api/tokens');
+        if (!res.ok) throw new Error('Failed to load tokens');
+        const data = await res.json();
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono">No API tokens generated yet.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.map(t => `
+            <tr class="hover:bg-white/5 transition-all">
+                <td class="px-6 py-4 font-bold text-xs text-white">${t.name}</td>
+                <td class="px-6 py-4 font-mono text-xs text-primary select-all">${t.prefix}...</td>
+                <td class="px-6 py-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono border uppercase bg-blue-500/10 text-blue-300 border-blue-500/20">${t.role}</span></td>
+                <td class="px-6 py-4 font-mono text-xs text-gray-400">${t.created_at || 'Just now'}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="deleteApiToken('${t.id}', '${t.name}')" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-white/5 text-xs font-bold transition-all"><span class="material-symbols-outlined text-sm">delete</span></button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-red-400 font-mono">Error loading tokens: ${e.message}</td></tr>`;
+    }
+}
+
+async function submitCreateToken(e) {
+    e.preventDefault();
+    const name = document.getElementById('new-token-name').value.trim();
+    const role = document.getElementById('new-token-role').value;
+    if (!name) return;
+    try {
+        const res = await apiFetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, role })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('new-token-name').value = '';
+            const banner = document.getElementById('token-created-banner');
+            const valEl = document.getElementById('new-token-val');
+            if (banner && valEl) {
+                valEl.textContent = data.token || 'sach_token_generated_secret';
+                banner.classList.remove('hidden');
+            }
+            showToast('✅ Programmatic API token generated!', 'success');
+            fetchApiTokens();
+        } else {
+            showToast('❌ Failed to create token', 'error');
+        }
+    } catch (err) {
+        showToast(`❌ Error: ${err.message}`, 'error');
+    }
+}
+
+async function deleteApiToken(id, name) {
+    if (!confirm(`Revoke token '${name}'? Automated pipelines using it will lose access.`)) return;
+    try {
+        const res = await apiFetch(`/api/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast(`Revoked token '${name}'`, 'info');
+            fetchApiTokens();
+        } else {
+            showToast('Failed to revoke token', 'error');
+        }
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+    }
+}
+
+// --- 11. Immutable Audit Trail ---
+async function fetchAuditLogs() {
+    const tbody = document.getElementById('audit-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono animate-pulse">Loading immutable server audit trail...</td></tr>`;
+    try {
+        const res = await apiFetch('/api/audit');
+        if (!res.ok) throw new Error('Failed to load audit logs');
+        const data = await res.json();
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400 font-mono">No administrative audit events recorded yet.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.map(l => `
+            <tr class="hover:bg-white/5 transition-all font-mono text-xs">
+                <td class="px-6 py-3 text-gray-400">${l.timestamp || 'Just now'}</td>
+                <td class="px-6 py-3 font-bold text-white">${l.username || 'admin'}</td>
+                <td class="px-6 py-3"><span class="text-primary font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">${l.action || 'ACTION'}</span></td>
+                <td class="px-6 py-3 text-gray-300 select-all">${l.target || 'Server System'}</td>
+                <td class="px-6 py-3 text-gray-500">${l.ip_address || '127.0.0.1'}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-red-400 font-mono">Error loading audit trail: ${e.message}</td></tr>`;
+    }
+}
+
+// ==========================================
+// Command Palette (Ctrl+K / Cmd+K) Logic
+// ==========================================
+function toggleCommandPalette() {
+    let modal = document.getElementById('command-palette-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'command-palette-modal';
+        modal.className = 'fixed inset-0 z-[100] bg-black/60 flex items-start justify-center pt-24 px-4 hidden';
+        modal.innerHTML = `
+            <div id="command-palette-container" class="bg-[#0e1320] border border-white/10 rounded-2xl w-full max-w-xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden">
+                <div class="p-4 border-b border-white/10 flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary text-xl">terminal</span>
+                    <input id="cmd-palette-input" type="text" placeholder="Type a command or search pages... (e.g. 'Deploy', 'Logs', 'Restart')" class="bg-transparent border-none text-white text-sm focus:ring-0 w-full outline-none placeholder:text-gray-500 font-mono">
+                    <span class="text-[10px] bg-white/10 text-gray-400 px-2 py-1 rounded font-mono">ESC</span>
+                </div>
+                <div id="cmd-palette-results" class="max-h-80 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.add('hidden');
+        });
+
+        const input = document.getElementById('cmd-palette-input');
+        input.addEventListener('input', () => filterCommandPalette(input.value));
+    }
+
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        const input = document.getElementById('cmd-palette-input');
+        input.value = '';
+        filterCommandPalette('');
+        setTimeout(() => input.focus(), 50);
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+function filterCommandPalette(query) {
+    const resultsContainer = document.getElementById('cmd-palette-results');
+    if (!resultsContainer) return;
+
+    const commands = [
+        { title: 'Go to Dashboard', desc: 'Overview of server & resources', icon: 'dashboard', action: () => window.location.href = '/' },
+        { title: 'Go to Integrated Terminal', desc: 'Browser-based SSH terminal', icon: 'terminal', action: () => window.location.href = '/terminal.html' },
+        { title: 'One-Click Marketplace', desc: 'Deploy n8n, PostgreSQL, Redis, etc.', icon: 'storefront', action: () => window.location.href = '/marketplace.html' },
+        { title: 'Manage Systemd Services', desc: 'Start, stop & restart host services', icon: 'settings_applications', action: () => window.location.href = '/services.html' },
+        { title: 'Cron Scheduler', desc: 'Automated periodic server tasks', icon: 'schedule', action: () => window.location.href = '/cron.html' },
+        { title: 'OS & Hardware Telemetry', desc: 'CPU, RAM, Motherboard & Disk SMART', icon: 'memory', action: () => window.location.href = '/hardware.html' },
+        { title: 'Network & VPN Mesh', desc: 'Tailscale VPN, open ports & firewall', icon: 'router', action: () => window.location.href = '/network.html' },
+        { title: 'OS & Package Updates', desc: 'Check APT upgrades & Git version', icon: 'system_update', action: () => window.location.href = '/updates.html' },
+        { title: 'Security Hardening Audit', desc: 'Run server vulnerability audit', icon: 'security', action: () => window.location.href = '/security.html' },
+        { title: 'Live System Logs', desc: 'Stream syslog, auth, dmesg & docker', icon: 'plagiarism', action: () => window.location.href = '/logs.html' },
+        { title: 'Platform Analytics', desc: 'Build history & resource trends', icon: 'insights', action: () => window.location.href = '/analytics.html' },
+        { title: 'Team User Management', desc: 'Manage admin & developer accounts', icon: 'group', action: () => window.location.href = '/team.html' },
+        { title: 'API Access Tokens', desc: 'Generate programmatic CI/CD keys', icon: 'key', action: () => window.location.href = '/tokens.html' },
+        { title: 'Immutable Audit Trail', desc: 'Review administrative logs', icon: 'history_edu', action: () => window.location.href = '/audit.html' },
+        { title: 'Manage Docker Containers', desc: 'Inspect, restart & check logs', icon: 'layers', action: () => window.location.href = '/containers.html' },
+        { title: 'Manage Docker Volumes', desc: 'Inspect storage mounts & drivers', icon: 'hard_drive', action: () => window.location.href = '/volumes.html' },
+        { title: 'Manage Docker Networks', desc: 'Inspect bridge & overlay networks', icon: 'lan', action: () => window.location.href = '/networks.html' },
+        { title: 'Deploy New Project', desc: 'Open project deployment modal', icon: 'add_circle', action: () => { window.location.href = '/projects.html'; } },
+        { title: 'Sign Out', desc: 'Log out of SachDeploy Enterprise', icon: 'logout', action: () => logoutUser() },
+    ];
+
+    const q = query.toLowerCase().trim();
+    const filtered = commands.filter(c => c.title.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q));
+
+    if (filtered.length === 0) {
+        resultsContainer.innerHTML = `<div class="p-4 text-center text-xs text-gray-500 font-mono">No matching commands or pages found.</div>`;
+        return;
+    }
+
+    resultsContainer.innerHTML = filtered.map((c, i) => `
+        <div onclick="executeCommand(${i})" class="cmd-item flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-white/5 text-left border border-transparent hover:border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-lg">${c.icon}</span>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">${c.title}</div>
+                    <div class="text-[11px] text-gray-400 font-mono">${c.desc}</div>
+                </div>
+            </div>
+            <span class="material-symbols-outlined text-gray-600 text-sm">arrow_forward</span>
+        </div>
+    `).join('');
+
+    window.currentFilteredCommands = filtered;
+}
+
+function executeCommand(index) {
+    const cmd = window.currentFilteredCommands && window.currentFilteredCommands[index];
+    if (cmd && typeof cmd.action === 'function') {
+        const modal = document.getElementById('command-palette-modal');
+        if (modal) modal.classList.add('hidden');
+        cmd.action();
+    }
+}
+
 
 

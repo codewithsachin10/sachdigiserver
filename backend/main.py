@@ -14,7 +14,12 @@ from backend.database import (
     get_notifications, mark_notifications_read, clear_notifications,
     get_all_settings, set_setting, get_project_env, set_project_env, get_deploy_history
 )
-from backend.auth import authenticate_user, get_current_user
+from backend.auth import (
+    authenticate_user, get_current_user,
+    list_team_users, create_team_user, delete_team_user,
+    list_api_tokens, create_api_token, delete_api_token,
+    get_audit_logs, record_audit_log
+)
 from backend.docker import (
     find_next_free_port, check_active_apps_limit, start_container,
     stop_container, restart_container, remove_container_and_image,
@@ -28,10 +33,18 @@ import backend.system.portainer as portainer
 import backend.system.files as file_mgr
 import backend.system.backup as backup_svc
 import backend.system.control as sys_ctrl
+import backend.system.services as sys_services
+import backend.system.cron as sys_cron
+import backend.system.security_audit as sys_audit
+import backend.system.logs_viewer as sys_logs
+import backend.system.updates as sys_updates
 import backend.terminal as term_svc
 import backend.marketplace.catalog as marketplace_cat
 import backend.marketplace.service as marketplace_svc
-from backend.monitoring import get_system_telemetry
+from backend.monitoring import (
+    get_system_telemetry, get_os_info, get_hardware_info,
+    get_network_info, get_location_info, get_deployment_analytics
+)
 
 app = FastAPI(title="SachDeploy v2.0 Enterprise", version="2.0.0")
 
@@ -128,6 +141,21 @@ class MarketplaceDeployRequest(BaseModel):
     name: Optional[str] = None
     port: Optional[int] = None
     env: Optional[dict] = None
+
+class ServiceActionRequest(BaseModel):
+    service_name: str
+    action: str
+
+class TeamUserCreateRequest(BaseModel):
+    username: str
+    role: Optional[str] = "Developer"
+
+class ApiTokenCreateRequest(BaseModel):
+    name: str
+    role: Optional[str] = "Developer"
+
+class SystemUpdateRequest(BaseModel):
+    target: str
 
 
 @app.on_event("startup")
@@ -602,6 +630,108 @@ async def server_control_action(req: ServerActionRequest, user: dict = Depends(g
         return sys_ctrl.shutdown_server()
     else:
         raise HTTPException(status_code=400, detail="Unknown server action")
+
+# --- OS Telemetry & Diagnostic Routes ---
+@app.get("/api/os-info")
+async def get_system_os_info(user: dict = Depends(get_current_user)):
+    return get_os_info()
+
+@app.get("/api/hardware-info")
+async def get_system_hardware_info(user: dict = Depends(get_current_user)):
+    return get_hardware_info()
+
+@app.get("/api/network-info")
+async def get_system_network_info(user: dict = Depends(get_current_user)):
+    return get_network_info()
+
+@app.get("/api/location-info")
+async def get_system_location_info(user: dict = Depends(get_current_user)):
+    return get_location_info()
+
+@app.get("/api/analytics")
+async def get_system_analytics(user: dict = Depends(get_current_user)):
+    return get_deployment_analytics()
+
+# --- System Administration Routes ---
+@app.get("/api/services")
+async def get_services(user: dict = Depends(get_current_user)):
+    return sys_services.list_system_services()
+
+@app.post("/api/services/action")
+async def perform_service_action(req: ServiceActionRequest, user: dict = Depends(get_current_user)):
+    return sys_services.control_service(req.service_name, req.action)
+
+@app.get("/api/cron")
+async def get_cron_jobs(user: dict = Depends(get_current_user)):
+    return sys_cron.list_cron_jobs()
+
+@app.post("/api/cron/toggle/{job_id}")
+async def toggle_cron(job_id: str, user: dict = Depends(get_current_user)):
+    res = sys_cron.toggle_cron_job(job_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=404, detail=res.get("error"))
+    return res
+
+@app.post("/api/cron/run/{job_id}")
+async def run_cron(job_id: str, user: dict = Depends(get_current_user)):
+    res = sys_cron.trigger_cron_job(job_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=404, detail=res.get("error"))
+    return res
+
+@app.get("/api/security-audit")
+async def get_sec_audit(user: dict = Depends(get_current_user)):
+    return sys_audit.get_security_audit()
+
+@app.get("/api/logs")
+async def get_logs(category: Optional[str] = "all", lines: Optional[int] = 100, user: dict = Depends(get_current_user)):
+    return sys_logs.get_system_logs(category=category, lines=int(lines or 100))
+
+@app.get("/api/updates")
+async def get_updates(user: dict = Depends(get_current_user)):
+    return sys_updates.get_system_updates()
+
+@app.post("/api/updates/trigger")
+async def trigger_update(req: SystemUpdateRequest, user: dict = Depends(get_current_user)):
+    res = sys_updates.trigger_system_update(req.target)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+# --- Team & Token Management Routes ---
+@app.get("/api/team/users")
+async def get_users(user: dict = Depends(get_current_user)):
+    return list_team_users()
+
+@app.post("/api/team/users")
+async def create_user(req: TeamUserCreateRequest, user: dict = Depends(get_current_user)):
+    res = create_team_user(req.username, req.role)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.delete("/api/team/users/{username}")
+async def delete_user(username: str, user: dict = Depends(get_current_user)):
+    res = delete_team_user(username)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.get("/api/team/tokens")
+async def get_tokens(user: dict = Depends(get_current_user)):
+    return list_api_tokens()
+
+@app.post("/api/team/tokens")
+async def create_token(req: ApiTokenCreateRequest, user: dict = Depends(get_current_user)):
+    return create_api_token(req.name, req.role)
+
+@app.delete("/api/team/tokens/{token_id}")
+async def delete_token(token_id: str, user: dict = Depends(get_current_user)):
+    return delete_api_token(token_id)
+
+@app.get("/api/audit-logs")
+async def get_audit(limit: Optional[int] = 50, user: dict = Depends(get_current_user)):
+    return get_audit_logs(limit=int(limit or 50))
 
 # --- Terminal Service Routes ---
 @app.get("/api/terminal/sessions")

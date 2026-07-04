@@ -195,35 +195,164 @@ MODALS_HTML = """
     <script src="/app.js"></script>
 """
 
+UNIVERSAL_SIDEBAR_HTML = """<aside id="main-sidebar" class="fixed left-0 top-0 h-full z-50 flex flex-col py-6 bg-surface/95 dark:bg-background/95 backdrop-blur-2xl border-r border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] w-64 pt-6 transition-all duration-200">
+    <div class="px-6 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+            <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+        </div>
+        <div>
+            <h1 class="font-headline font-bold text-lg text-white tracking-tight leading-none">SachDeploy</h1>
+            <p class="text-[11px] text-gray-400 font-mono mt-1">Enterprise OS v2.0</p>
+        </div>
+    </div>
+
+    <nav id="sidebar-nav" class="flex-1 px-3 space-y-5 overflow-y-auto custom-scrollbar">
+        <!-- Section 1: Cloud Platform -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">Cloud Platform</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/">
+                <span class="material-symbols-outlined text-lg">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/projects.html">
+                <span class="material-symbols-outlined text-lg">rocket_launch</span>
+                <span>Projects</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/deployments.html">
+                <span class="material-symbols-outlined text-lg">dynamic_feed</span>
+                <span>Deployments</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/marketplace.html">
+                <span class="material-symbols-outlined text-lg">storefront</span>
+                <span>Marketplace</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/containers.html">
+                <span class="material-symbols-outlined text-lg">layers</span>
+                <span>Containers</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/volumes.html">
+                <span class="material-symbols-outlined text-lg">hard_drive</span>
+                <span>Volumes</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/networks.html">
+                <span class="material-symbols-outlined text-lg">lan</span>
+                <span>Networks</span>
+            </a>
+        </div>
+        
+        <!-- Section 2: System OS & Hardware -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">System OS & Hardware</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/monitoring.html">
+                <span class="material-symbols-outlined text-lg">monitoring</span>
+                <span>Live Monitoring</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/terminal.html">
+                <span class="material-symbols-outlined text-lg">terminal</span>
+                <span>Integrated Terminal</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/services.html">
+                <span class="material-symbols-outlined text-lg">settings_applications</span>
+                <span>Systemd Services</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/cron.html">
+                <span class="material-symbols-outlined text-lg">schedule</span>
+                <span>Cron Scheduler</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/hardware.html">
+                <span class="material-symbols-outlined text-lg">memory</span>
+                <span>OS & Hardware</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/network.html">
+                <span class="material-symbols-outlined text-lg">router</span>
+                <span>Network & VPN</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/updates.html">
+                <span class="material-symbols-outlined text-lg">system_update</span>
+                <span>OS Updates</span>
+            </a>
+        </div>
+
+        <!-- Section 3: Security & Team -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 font-mono">Security & Team</p>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/security.html">
+                <span class="material-symbols-outlined text-lg">security</span>
+                <span>Security Audit</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/logs.html">
+                <span class="material-symbols-outlined text-lg">plagiarism</span>
+                <span>System Logs</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/analytics.html">
+                <span class="material-symbols-outlined text-lg">insights</span>
+                <span>Analytics</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/team.html">
+                <span class="material-symbols-outlined text-lg">group</span>
+                <span>Team Users</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/tokens.html">
+                <span class="material-symbols-outlined text-lg">key</span>
+                <span>API Tokens</span>
+            </a>
+            <a class="nav-link flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/audit.html">
+                <span class="material-symbols-outlined text-lg">history_edu</span>
+                <span>Audit Logs</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="px-4 mt-auto pt-4 space-y-1 border-t border-white/10">
+        <a class="nav-link flex items-center gap-3 px-3.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/support.html">
+            <span class="material-symbols-outlined text-lg">help</span>
+            <span>Support</span>
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 text-xs font-medium" href="/settings.html">
+            <span class="material-symbols-outlined text-lg">settings</span>
+            <span>Settings</span>
+        </a>
+    </div>
+</aside>"""
+
 def update_nav_links(html):
-    # Map link texts to target URLs
+    # Map link texts to target URLs for any inline links
     mapping = {
         r"Dashboard": "/",
         r"Projects": "/projects.html",
         r"Deployments": "/deployments.html",
+        r"Marketplace": "/marketplace.html",
         r"Containers": "/containers.html",
         r"Volumes": "/volumes.html",
         r"Networks": "/networks.html",
         r"Monitoring": "/monitoring.html",
+        r"Live Monitoring": "/monitoring.html",
         r"Terminal": "/terminal.html",
+        r"Integrated Terminal": "/terminal.html",
+        r"Services": "/services.html",
+        r"Systemd Services": "/services.html",
+        r"Cron": "/cron.html",
+        r"Cron Scheduler": "/cron.html",
+        r"OS & Hardware": "/hardware.html",
+        r"Network & VPN": "/network.html",
+        r"OS Updates": "/updates.html",
+        r"Security Audit": "/security.html",
+        r"System Logs": "/logs.html",
+        r"Analytics": "/analytics.html",
+        r"Team Users": "/team.html",
+        r"API Tokens": "/tokens.html",
+        r"Audit Logs": "/audit.html",
         r"Support": "/support.html",
+        r"Docs": "/support.html",
         r"Settings": "/settings.html",
     }
     
     for text, url in mapping.items():
-        # Regex to match <a> tags containing the specific text and href="#"
         pattern = re.compile(rf'(<a\s+[^>]*?href=)["\']#["\']([^>]*?>\s*(?:<[^>]+>\s*)*?{text}\s*<)', re.IGNORECASE)
         html = pattern.sub(r'\1"' + url + r'"\2', html)
-    
-    # Also add Marketplace item if not present after Deployments
-    if '/marketplace.html' not in html and '/deployments.html' in html:
-        mkt_item = '''
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all duration-200" href="/marketplace.html">
-<span class="material-symbols-outlined">storefront</span>
-<span class="font-label-sm">Marketplace</span>
-</a>'''
-        # Try inserting after deployments tab
-        html = re.sub(r'(href=["\']/deployments\.html["\'][^>]*?>.*?</a>)', r'\1' + mkt_item, html, flags=re.DOTALL)
+        
+    # Replace existing sidebar with our universal 22-item enterprise sidebar
+    html = re.sub(r'(?:<aside\s+class="[^>]*?fixed[^>]*?>|<nav\s+class="[^>]*?fixed\s+left-0\s+top-0[^>]*?>).*?(?:</aside>|</nav>)', UNIVERSAL_SIDEBAR_HTML, html, flags=re.DOTALL)
         
     return html
 
@@ -316,7 +445,8 @@ if os.path.exists(cont_path):
     with open(cont_path, "r", encoding="utf-8") as f:
         vol_content = f.read()
     vol_content = update_nav_links(vol_content)
-    vol_content = vol_content.replace("Container Overview", "Docker Volumes")
+    vol_content = vol_content.replace("Container Management", "Docker Volumes")
+    vol_content = vol_content.replace("High-performance orchestration layer. Monitor, scale, and debug your containerized services across the production cluster.", "Manage Docker data volumes, persistent storage drivers, and mount bindings across the production host.")
     vol_content = re.sub(r'<thead>.*?</thead>', r'<thead><tr class="border-b border-white/5 bg-white/2"><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Volume Name</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Driver</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Scope</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Created</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs text-right">Actions</th></tr></thead>', vol_content, flags=re.DOTALL)
     vol_content = re.sub(r'(<tbody class="divide-y divide-white/5">)', r'<tbody id="volumes-tbody" class="divide-y divide-white/5">', vol_content)
     vol_content = inject_modals_and_scripts(vol_content)
@@ -327,13 +457,241 @@ if os.path.exists(cont_path):
     with open(cont_path, "r", encoding="utf-8") as f:
         net_content = f.read()
     net_content = update_nav_links(net_content)
-    net_content = net_content.replace("Container Overview", "Docker Networks")
+    net_content = net_content.replace("Container Management", "Docker Networks")
+    net_content = net_content.replace("High-performance orchestration layer. Monitor, scale, and debug your containerized services across the production cluster.", "Manage bridge, overlay, and host virtual networks for container communication and port forwarding.")
     net_content = re.sub(r'<thead>.*?</thead>', r'<thead><tr class="border-b border-white/5 bg-white/2"><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Network Name</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">ID</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Driver</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Scope</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Subnet</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs text-right">Actions</th></tr></thead>', net_content, flags=re.DOTALL)
     net_content = re.sub(r'(<tbody class="divide-y divide-white/5">)', r'<tbody id="networks-tbody" class="divide-y divide-white/5">', net_content)
     net_content = inject_modals_and_scripts(net_content)
     with open(os.path.join(FRONTEND_DIR, "networks.html"), "w", encoding="utf-8") as f:
         f.write(net_content)
     print("Generated: networks.html")
+
+    # Generate 11 System OS & Administration pages derived from Containers template
+    sys_pages = [
+        ("services.html", "Systemd Services", "Manage host OS background daemons, restart system services, and monitor startup load state.", """
+<!-- Services Filter & Actions -->
+<div class="flex items-center justify-between mb-6">
+    <div class="flex gap-2">
+        <button onclick="loadServices('all', this)" class="srv-tab bg-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-bold border border-primary/30">All Services</button>
+        <button onclick="loadServices('running', this)" class="srv-tab bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-xs hover:text-on-surface transition-all">Running</button>
+        <button onclick="loadServices('failed', this)" class="srv-tab bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-xs hover:text-on-surface transition-all">Failed</button>
+    </div>
+    <div class="flex gap-4 items-center">
+        <div class="bg-surface-container px-3 py-2 rounded-lg border border-white/5 flex items-center gap-2 min-w-[240px]">
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
+            <input id="service-search" oninput="filterServices()" class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full p-0 placeholder:text-on-surface-variant/50" placeholder="Search service daemon..." type="text"/>
+        </div>
+        <button onclick="fetchServices()" class="p-2 glass-card rounded-lg hover:bg-white/5 transition-all">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+</div>
+<!-- Services Table -->
+<div class="glass-card rounded-2xl overflow-hidden inner-glow">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Status</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Service Name</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Description</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Load State</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Sub State</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="services-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
+</div>
+"""),
+        ("cron.html", "Cron Scheduler", "Automated host OS background tasks, system backups, and periodic maintenance automation.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">System crontab and periodic user automation tasks</div>
+    <button onclick="fetchCronJobs()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Refresh Jobs</button>
+</div>
+<div class="glass-card rounded-2xl overflow-hidden inner-glow">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Status</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Schedule</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Command</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">User / Category</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="cron-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
+</div>
+"""),
+        ("hardware.html", "OS & Hardware Specs", "Live CPU architecture, motherboard sensors, disk SMART health, and kernel diagnostics.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">Real-time hardware sensors and OS telemetry from Ubuntu host</div>
+    <button onclick="fetchHardwareInfo()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Refresh Telemetry</button>
+</div>
+<div id="hardware-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+"""),
+        ("network.html", "Network & VPN", "Public IP geolocation, Tailscale mesh status, active listening ports, and firewall rules.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">IP geolocation, Tailscale VPN mesh, active ports, and UFW firewall status</div>
+    <button onclick="fetchNetworkInfo()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Refresh Network</button>
+</div>
+<div id="network-container" class="space-y-6"></div>
+"""),
+        ("updates.html", "OS & Package Updates", "Check APT packages, upgrade Ubuntu base system, and pull latest Git repository updates.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">APT system packages and Git repository version tracking</div>
+    <button onclick="fetchSystemUpdates()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Check for Updates</button>
+</div>
+<div id="updates-container" class="space-y-6"></div>
+"""),
+        ("security.html", "Security Audit", "Automated vulnerability scanning, SSH password auth checks, UFW status, and root logins.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">Automated server hardening audit and access security score</div>
+    <button onclick="fetchSecurityAudit()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Run Audit Now</button>
+</div>
+<div id="security-container" class="space-y-6"></div>
+"""),
+        ("logs.html", "System Logs", "Live syslog streaming, authentication logs, kernel dmesg, and daemon activity.", """
+<div class="glass-card rounded-2xl p-6 space-y-4 inner-glow">
+    <div class="flex flex-wrap gap-4 items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex gap-2">
+            <button onclick="loadSystemLogs('all', this)" class="log-tab bg-primary text-[#002e6a] px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md">Syslog</button>
+            <button onclick="loadSystemLogs('auth', this)" class="log-tab bg-white/5 hover:bg-white/10 text-gray-300 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">Auth Logs</button>
+            <button onclick="loadSystemLogs('dmesg', this)" class="log-tab bg-white/5 hover:bg-white/10 text-gray-300 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">Kernel (dmesg)</button>
+            <button onclick="loadSystemLogs('docker', this)" class="log-tab bg-white/5 hover:bg-white/10 text-gray-300 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">Docker Daemon</button>
+        </div>
+        <div class="flex items-center gap-3">
+            <select id="log-lines-select" onchange="loadSystemLogs(window.currentLogCat || 'all')" class="bg-[#0b0e15] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-300 font-mono outline-none focus:border-primary">
+                <option value="50">50 lines</option>
+                <option value="100" selected>100 lines</option>
+                <option value="250">250 lines</option>
+                <option value="500">500 lines</option>
+            </select>
+            <button onclick="loadSystemLogs(window.currentLogCat || 'all')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg text-xs font-bold flex items-center gap-1 shadow-md"><span class="material-symbols-outlined text-sm">refresh</span> Refresh</button>
+        </div>
+    </div>
+    <pre id="sys-logs-viewer" class="bg-[#0b0e15] border border-white/5 rounded-xl p-4 font-mono text-xs text-green-400 overflow-y-auto max-h-[600px] leading-relaxed select-all whitespace-pre-wrap"></pre>
+</div>
+"""),
+        ("analytics.html", "Platform Analytics", "Historical build durations, resource utilization trends, and deployment reliability metrics.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">Real-time container resource utilization and deployment build history</div>
+    <button onclick="fetchAnalytics()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Refresh Metrics</button>
+</div>
+<div id="analytics-container" class="space-y-6"></div>
+"""),
+        ("team.html", "Team Users", "Manage platform administrators, developers, and read-only viewers.", """
+<div class="glass-card rounded-2xl p-6 space-y-6 inner-glow mb-8">
+    <div class="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
+        <div>
+            <h3 class="font-bold text-base text-white">Registered Platform Accounts</h3>
+            <p class="text-xs text-gray-400">Manage role-based access for server administration</p>
+        </div>
+        <form onsubmit="submitCreateUser(event)" class="flex gap-2 items-center">
+            <input type="text" id="new-username" placeholder="Username" required class="bg-[#0b0e15] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono outline-none focus:border-primary">
+            <select id="new-user-role" class="bg-[#0b0e15] border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-primary">
+                <option value="admin">Admin</option>
+                <option value="developer">Developer</option>
+                <option value="viewer">Viewer</option>
+            </select>
+            <button type="submit" class="bg-primary hover:bg-primary-container text-[#002e6a] font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-lg shadow-primary/20"><span class="material-symbols-outlined text-sm">person_add</span> Add User</button>
+        </form>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Username</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Role</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Created At</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="team-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
+</div>
+"""),
+        ("tokens.html", "API Tokens", "Generate programmatic access tokens for automated deployments and third-party integrations.", """
+<div class="glass-card rounded-2xl p-6 space-y-6 inner-glow mb-8">
+    <div class="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
+        <div>
+            <h3 class="font-bold text-base text-white">Programmatic API Tokens</h3>
+            <p class="text-xs text-gray-400">Authenticate external CI/CD pipelines and scripts</p>
+        </div>
+        <form onsubmit="submitCreateToken(event)" class="flex gap-2 items-center">
+            <input type="text" id="new-token-name" placeholder="Token Name (e.g. GitHub Actions)" required class="bg-[#0b0e15] border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono outline-none focus:border-primary w-64">
+            <select id="new-token-role" class="bg-[#0b0e15] border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-primary">
+                <option value="developer">Developer</option>
+                <option value="admin">Admin</option>
+                <option value="viewer">Viewer</option>
+            </select>
+            <button type="submit" class="bg-primary hover:bg-primary-container text-[#002e6a] font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-lg shadow-primary/20"><span class="material-symbols-outlined text-sm">key</span> Generate Token</button>
+        </form>
+    </div>
+    <div id="token-created-banner" class="hidden bg-green-950/60 border border-green-500/50 p-4 rounded-xl flex items-center justify-between text-xs text-green-300 font-mono shadow-xl">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-400">check_circle</span>
+            <span>New Token Created: <strong id="new-token-val" class="text-white font-bold select-all bg-black/40 px-2 py-1 rounded border border-white/10"></strong> (Copy now, you won't see this again!)</span>
+        </div>
+        <button onclick="document.getElementById('token-created-banner').classList.add('hidden')" class="text-gray-400 hover:text-white px-2">✕</button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Token Name</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Prefix</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Role</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Created At</th>
+                    <th class="px-6 py-3 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tokens-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
+</div>
+"""),
+        ("audit.html", "Audit Logs", "Immutable audit trail of all server administration, security events, and logins.", """
+<div class="flex justify-between items-center mb-6">
+    <div class="text-xs text-gray-400 font-mono">Immutable audit trail of server administration and security events</div>
+    <button onclick="fetchAuditLogs()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-lg"><span class="material-symbols-outlined text-sm">refresh</span> Refresh Trail</button>
+</div>
+<div class="glass-card rounded-2xl overflow-hidden inner-glow">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Timestamp</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Username</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Action</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Target</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">IP Address</th>
+                </tr>
+            </thead>
+            <tbody id="audit-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
+</div>
+""")
+    ]
+
+    for dest_file, title, subtitle, body_html in sys_pages:
+        with open(cont_path, "r", encoding="utf-8") as f:
+            page_content = f.read()
+        page_content = update_nav_links(page_content)
+        page_content = page_content.replace("Container Management", title)
+        page_content = page_content.replace("High-performance orchestration layer. Monitor, scale, and debug your containerized services across the production cluster.", subtitle)
+        # Replace from Dashboard Filters to right before </main>
+        page_content = re.sub(r'<!-- Dashboard Filters -->.*?(?=</main>)', body_html + '\n</div>\n', page_content, flags=re.DOTALL)
+        page_content = inject_modals_and_scripts(page_content)
+        with open(os.path.join(FRONTEND_DIR, dest_file), "w", encoding="utf-8") as f:
+            f.write(page_content)
+        print(f"Generated: {dest_file}")
 
 # Generate Premium Login Screen
 LOGIN_HTML = """<!DOCTYPE html>

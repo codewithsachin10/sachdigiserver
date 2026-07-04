@@ -3,7 +3,7 @@
 <html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>SachDeploy | Docker Networks</title>
+<title>SachDeploy | Systemd Services</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -239,8 +239,8 @@
 <!-- Hero / Title Section -->
 <div class="mb-12 flex justify-between items-end">
 <div>
-<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Docker Networks</h1>
-<p class="text-on-surface-variant max-w-2xl">Manage bridge, overlay, and host virtual networks for container communication and port forwarding.</p>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Systemd Services</h1>
+<p class="text-on-surface-variant max-w-2xl">Manage host OS background daemons, restart system services, and monitor startup load state.</p>
 </div>
 <div class="flex gap-3">
 <div class="glass-card flex items-center px-4 py-2 rounded-xl border-white/10 gap-4">
@@ -256,290 +256,43 @@
 </div>
 </div>
 </div>
-<!-- Dashboard Filters -->
+
+<!-- Services Filter & Actions -->
 <div class="flex items-center justify-between mb-6">
-<div class="flex gap-2">
-<button class="bg-primary/20 text-primary px-4 py-1.5 rounded-full text-label-sm font-bold border border-primary/30">All Containers (24)</button>
-<button class="bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-label-sm hover:text-on-surface transition-all">Running (18)</button>
-<button class="bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-label-sm hover:text-on-surface transition-all">Exited (6)</button>
+    <div class="flex gap-2">
+        <button onclick="loadServices('all', this)" class="srv-tab bg-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-bold border border-primary/30">All Services</button>
+        <button onclick="loadServices('running', this)" class="srv-tab bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-xs hover:text-on-surface transition-all">Running</button>
+        <button onclick="loadServices('failed', this)" class="srv-tab bg-surface-container-high text-on-surface-variant px-4 py-1.5 rounded-full text-xs hover:text-on-surface transition-all">Failed</button>
+    </div>
+    <div class="flex gap-4 items-center">
+        <div class="bg-surface-container px-3 py-2 rounded-lg border border-white/5 flex items-center gap-2 min-w-[240px]">
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
+            <input id="service-search" oninput="filterServices()" class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full p-0 placeholder:text-on-surface-variant/50" placeholder="Search service daemon..." type="text"/>
+        </div>
+        <button onclick="fetchServices()" class="p-2 glass-card rounded-lg hover:bg-white/5 transition-all">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
 </div>
-<div class="flex gap-4 items-center">
-<div class="bg-surface-container px-3 py-2 rounded-lg border border-white/5 flex items-center gap-2 min-w-[240px]">
-<span class="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
-<input class="bg-transparent border-none focus:ring-0 text-sm text-on-surface w-full p-0 placeholder:text-on-surface-variant/50" placeholder="Search by name or image..." type="text"/>
-</div>
-<button class="p-2 glass-card rounded-lg hover:bg-white/5 transition-all">
-<span class="material-symbols-outlined">refresh</span>
-</button>
-</div>
-</div>
-<!-- Dense Container Table -->
+<!-- Services Table -->
 <div class="glass-card rounded-2xl overflow-hidden inner-glow">
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead><tr class="border-b border-white/5 bg-white/2"><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Network Name</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">ID</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Driver</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Scope</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs">Subnet</th><th class="px-6 py-4 font-bold text-on-surface-variant uppercase text-xs text-right">Actions</th></tr></thead>
-<tbody id="networks-tbody" class="divide-y divide-white/5">
-<!-- Container Row 1: Running -->
-<tr class="hover:bg-white/[0.02] transition-colors group">
-<td class="px-6 py-4 whitespace-nowrap">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-green-500 pulse-live"></div>
-<span class="text-xs font-bold text-green-500 uppercase tracking-wide">Running</span>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-white/5 bg-surface-container-low">
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Status</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Service Name</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Description</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Load State</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">Sub State</th>
+                    <th class="px-6 py-4 text-[11px] uppercase tracking-widest text-on-surface-variant font-bold text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="services-tbody" class="divide-y divide-white/5"></tbody>
+        </table>
+    </div>
 </div>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col">
-<span class="text-on-surface font-semibold">api-gateway-prod</span>
-<span class="text-[11px] text-on-surface-variant font-code-md">id: 8f921a2c</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md px-2 py-0.5 bg-surface-container-highest rounded border border-white/5 text-on-surface-variant">nginx:stable-alpine</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="flex-1 h-1.5 bg-surface-container-highest rounded-full w-16 overflow-hidden">
-<div class="h-full bg-primary w-[12%]"></div>
-</div>
-<span class="text-sm font-code-md">1.2%</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">142.5 MB</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col gap-0.5">
-<span class="text-[10px] font-code-md text-primary flex items-center gap-1">
-<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 12.4 KB/s
-                                        </span>
-<span class="text-[10px] font-code-md text-on-surface-variant flex items-center gap-1">
-<span class="material-symbols-outlined text-[12px]">arrow_downward</span> 84.2 KB/s
-                                        </span>
-</div>
-</td>
-<td class="px-6 py-4 text-right">
-<div class="flex justify-end gap-1">
-<button class="p-2 hover:bg-error/10 hover:text-error rounded-lg transition-all" title="Stop">
-<span class="material-symbols-outlined text-[18px]">stop</span>
-</button>
-<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-lg transition-all" title="Restart">
-<span class="material-symbols-outlined text-[18px]">restart_alt</span>
-</button>
-<button class="p-2 hover:bg-white/5 text-on-surface-variant rounded-lg transition-all" title="Logs">
-<span class="material-symbols-outlined text-[18px]">subject</span>
-</button>
-<button class="p-2 hover:bg-white/5 text-on-surface-variant rounded-lg transition-all" title="Terminal">
-<span class="material-symbols-outlined text-[18px]">terminal</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Container Row 2: Stopped -->
-<tr class="hover:bg-white/[0.02] transition-colors group opacity-60 hover:opacity-100">
-<td class="px-6 py-4 whitespace-nowrap">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-on-surface-variant"></div>
-<span class="text-xs font-bold text-on-surface-variant uppercase tracking-wide">Stopped</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col">
-<span class="text-on-surface font-semibold">worker-queue-01</span>
-<span class="text-[11px] text-on-surface-variant font-code-md">id: 3d11b2ff</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md px-2 py-0.5 bg-surface-container-highest rounded border border-white/5 text-on-surface-variant">redis:7.0-bullseye</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">0.0%</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">0 MB</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-[10px] font-code-md text-on-surface-variant">—</span>
-</td>
-<td class="px-6 py-4 text-right">
-<div class="flex justify-end gap-1">
-<button class="p-2 hover:bg-green-500/10 hover:text-green-500 rounded-lg transition-all" title="Start">
-<span class="material-symbols-outlined text-[18px]">play_arrow</span>
-</button>
-<button class="p-2 hover:bg-white/5 text-on-surface-variant rounded-lg transition-all" title="Logs">
-<span class="material-symbols-outlined text-[18px]">subject</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Container Row 3: Running (Heavy) -->
-<tr class="hover:bg-white/[0.02] transition-colors group">
-<td class="px-6 py-4 whitespace-nowrap">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-green-500 pulse-live"></div>
-<span class="text-xs font-bold text-green-500 uppercase tracking-wide">Running</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col">
-<span class="text-on-surface font-semibold">postgres-main-db</span>
-<span class="text-[11px] text-on-surface-variant font-code-md">id: f52e903a</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md px-2 py-0.5 bg-surface-container-highest rounded border border-white/5 text-on-surface-variant">postgres:15-alpine</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="flex-1 h-1.5 bg-surface-container-highest rounded-full w-16 overflow-hidden">
-<div class="h-full bg-primary w-[48%]"></div>
-</div>
-<span class="text-sm font-code-md">48.2%</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">2.4 GB</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col gap-0.5">
-<span class="text-[10px] font-code-md text-primary flex items-center gap-1">
-<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 4.2 MB/s
-                                        </span>
-<span class="text-[10px] font-code-md text-on-surface-variant flex items-center gap-1">
-<span class="material-symbols-outlined text-[12px]">arrow_downward</span> 2.1 MB/s
-                                        </span>
-</div>
-</td>
-<td class="px-6 py-4 text-right">
-<div class="flex justify-end gap-1">
-<button class="p-2 hover:bg-error/10 hover:text-error rounded-lg transition-all" title="Stop">
-<span class="material-symbols-outlined text-[18px]">stop</span>
-</button>
-<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-lg transition-all" title="Restart">
-<span class="material-symbols-outlined text-[18px]">restart_alt</span>
-</button>
-<button class="p-2 hover:bg-white/5 text-on-surface-variant rounded-lg transition-all" title="Logs">
-<span class="material-symbols-outlined text-[18px]">subject</span>
-</button>
-<button class="p-2 hover:bg-white/5 text-on-surface-variant rounded-lg transition-all" title="Terminal">
-<span class="material-symbols-outlined text-[18px]">terminal</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 4: Paused -->
-<tr class="hover:bg-white/[0.02] transition-colors group">
-<td class="px-6 py-4 whitespace-nowrap">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-yellow-500"></div>
-<span class="text-xs font-bold text-yellow-500 uppercase tracking-wide">Paused</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex flex-col">
-<span class="text-on-surface font-semibold">data-scraper-v2</span>
-<span class="text-[11px] text-on-surface-variant font-code-md">id: 11c8a42e</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md px-2 py-0.5 bg-surface-container-highest rounded border border-white/5 text-on-surface-variant">python:3.9-slim</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">0.0%</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm font-code-md">42 MB</span>
-</td>
-<td class="px-6 py-4">
-<span class="text-[10px] font-code-md text-on-surface-variant">—</span>
-</td>
-<td class="px-6 py-4 text-right">
-<div class="flex justify-end gap-1">
-<button class="p-2 hover:bg-green-500/10 hover:text-green-500 rounded-lg transition-all" title="Resume">
-<span class="material-symbols-outlined text-[18px]">play_arrow</span>
-</button>
-<button class="p-2 hover:bg-error/10 hover:text-error rounded-lg transition-all" title="Stop">
-<span class="material-symbols-outlined text-[18px]">stop</span>
-</button>
-</div>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- Table Footer/Pagination -->
-<div class="p-4 bg-surface-container-low border-t border-white/5 flex items-center justify-between text-[12px] text-on-surface-variant">
-<div class="flex items-center gap-4">
-<span>Showing 1-10 of 24 containers</span>
-<div class="flex items-center gap-2">
-<span>Rows per page:</span>
-<select class="bg-surface-container border-white/10 rounded px-1 text-[12px] focus:ring-0">
-<option>10</option>
-<option>25</option>
-<option>50</option>
-</select>
-</div>
-</div>
-<div class="flex gap-2">
-<button class="p-1 glass-card rounded hover:bg-white/5 disabled:opacity-30" disabled="">
-<span class="material-symbols-outlined text-[18px]">chevron_left</span>
-</button>
-<button class="p-1 glass-card rounded hover:bg-white/5">
-<span class="material-symbols-outlined text-[18px]">chevron_right</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Contextual Metrics Bento Grid -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-<div class="glass-card p-6 rounded-2xl inner-glow">
-<div class="flex items-center justify-between mb-4">
-<h4 class="text-on-surface font-bold text-label-sm uppercase tracking-wider">Node Health</h4>
-<span class="text-green-500 text-xs font-bold px-2 py-0.5 bg-green-500/10 rounded">Optimal</span>
-</div>
-<div class="space-y-4">
-<div class="flex justify-between items-end">
-<span class="text-sm text-on-surface-variant">Cluster Load</span>
-<span class="font-code-md text-primary">22%</span>
-</div>
-<div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-<div class="h-full bg-primary w-[22%]"></div>
-</div>
-</div>
-</div>
-<div class="glass-card p-6 rounded-2xl inner-glow md:col-span-2">
-<div class="flex items-center justify-between mb-6">
-<div>
-<h4 class="text-on-surface font-bold text-label-sm uppercase tracking-wider">Network Throughput</h4>
-<p class="text-[11px] text-on-surface-variant">Last 30 minutes aggregated traffic</p>
-</div>
-<div class="flex gap-4">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-primary"></div>
-<span class="text-[10px] uppercase">Ingress</span>
-</div>
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-on-surface-variant"></div>
-<span class="text-[10px] uppercase">Egress</span>
-</div>
-</div>
-</div>
-<div class="h-24 w-full flex items-end gap-1">
-<!-- Tiny visual simulation of a graph -->
-<div class="flex-1 bg-primary/20 h-[40%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/20 h-[35%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/20 h-[55%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/20 h-[70%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/40 h-[85%] rounded-t-sm border-t-2 border-primary"></div>
-<div class="flex-1 bg-primary/40 h-[60%] rounded-t-sm border-t-2 border-primary"></div>
-<div class="flex-1 bg-primary/40 h-[45%] rounded-t-sm border-t-2 border-primary"></div>
-<div class="flex-1 bg-primary/20 h-[30%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/20 h-[50%] rounded-t-sm"></div>
-<div class="flex-1 bg-primary/40 h-[65%] rounded-t-sm border-t-2 border-primary"></div>
-<div class="flex-1 bg-primary/60 h-[90%] rounded-t-sm border-t-2 border-primary"></div>
-<div class="flex-1 bg-primary/40 h-[75%] rounded-t-sm border-t-2 border-primary"></div>
-</div>
-</div>
-</div>
+
 </div>
 </main>
 <!-- Floating Action Button (FAB) - Suppression logic: Only on main container dashboard -->
