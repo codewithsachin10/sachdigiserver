@@ -20,14 +20,15 @@ from backend.docker import (
     stop_container, restart_container, remove_container_and_image,
     get_container_status, get_container_logs
 )
-from backend.deployment import get_storage_dirs, extract_zip, clone_repo, detect_project_type_and_template, deploy_project_background
+from backend.git import clone_repo
+from backend.deployment import get_storage_dirs, extract_zip, detect_project_type_and_template, deploy_project_background
 from backend.security import SystemGuard
 from backend.system import auto_recover_apps
 import backend.system.portainer as portainer
 import backend.system.files as file_mgr
 import backend.system.backup as backup_svc
 import backend.system.control as sys_ctrl
-import backend.terminal.terminal_service as term_svc
+import backend.terminal as term_svc
 import backend.marketplace.catalog as marketplace_cat
 import backend.marketplace.service as marketplace_svc
 from backend.monitoring import get_system_telemetry

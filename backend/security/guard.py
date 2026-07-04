@@ -2,7 +2,7 @@ import asyncio
 import psutil
 import time
 from backend.database import get_all_projects, update_project_status
-from backend.docker_manager import stop_container, get_docker_client
+from backend.docker import stop_container, get_docker_client
 
 class SystemGuard:
     def __init__(self, ws_manager=None):

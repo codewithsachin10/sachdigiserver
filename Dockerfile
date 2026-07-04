@@ -30,9 +30,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend ./backend
 COPY frontend ./frontend
 COPY docker ./docker
+COPY audit_imports.py ./audit_imports.py
 
 # Create storage directories and host mount point
 RUN mkdir -p /app/storage/uploads /app/storage/projects /host_root
+
+# Run automated import verification audit during build
+ENV PYTHONPATH=/app
+RUN python audit_imports.py
 
 EXPOSE 7000
 
